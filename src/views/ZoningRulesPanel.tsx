@@ -14,6 +14,29 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type { BuildingInput } from '@/types'
+import { getPlanAreasByDistrict } from '@/data/regionRules'
+
+// ─── 工具：zone_name (阿拉伯數字) → zoneType (中文數字) ──────────
+
+const ARABIC_TO_CHINESE: Record<string, string> = {
+  '1': '一', '2': '二', '3': '三', '4': '四', '5': '五',
+  '6': '六', '7': '七', '8': '八', '9': '九', '0': '零',
+}
+
+/** 將「住2」「商1」等 DB 分區名稱轉成 rule engine 的 zoneType 格式「住二」「商一」 */
+function toZoneType(zoneName: string): string {
+  // 只轉換末尾阿拉伯數字，保留前綴（如「住」「商」「工」）
+  return zoneName.replace(/(\d+)$/, (_, n: string) =>
+    n.split('').map(c => ARABIC_TO_CHINESE[c] ?? c).join('')
+  )
+}
+
+/** 從行政區（可能是逗號/頓號分隔多個）取第一個 */
+function firstDistrict(district: string | null): string {
+  if (!district) return ''
+  return district.split(/[,，、]/)[0].trim()
+}
 
 // ─── 型別 ─────────────────────────────────────────────────────────
 
@@ -206,7 +229,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 
 // ─── 結果卡片 ─────────────────────────────────────────────────────
 
-function RuleCard({ rule }: { rule: ZoningRule }) {
+function RuleCard({ rule, onApplyToCheck }: { rule: ZoningRule; onApplyToCheck?: (p: Partial<BuildingInput>) => void }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* 分區標題 */}
@@ -259,6 +282,89 @@ function RuleCard({ rule }: { rule: ZoningRule }) {
         <span>臺中市都市計畫建蔽率容積率彙總表</span>
         <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">112.4.14 一版</span>
       </div>
+
+      {/* 帶入法規檢核按鈕 */}
+      {onApplyToCheck && (
+        <ApplyToCheckSection rule={rule} onApplyToCheck={onApplyToCheck} />
+      )}
+    </div>
+  )
+}
+
+// ─── 帶入法規檢核區塊 ─────────────────────────────────────────────
+
+function ApplyToCheckSection({ rule, onApplyToCheck }: {
+  rule: ZoningRule
+  onApplyToCheck: (p: Partial<BuildingInput>) => void
+}) {
+  const [applied, setApplied] = useState(false)
+
+  const district = firstDistrict(rule.district)
+  const zoneType = toZoneType(rule.zone_name)
+
+  // 依行政區對應 planAreaId
+  const planAreaId = district
+    ? (getPlanAreasByDistrict(district)[0]?.id ?? 'general_taichung')
+    : 'general_taichung'
+
+  const items = [
+    { label: '行政區',    value: district || '（未知）' },
+    { label: '都市計畫',  value: rule.urban_plan_name },
+    { label: '使用分區',  value: rule.zone_name },
+    { label: '建蔽率',    value: rule.coverage_ratio    !== null ? `${rule.coverage_ratio}%`    : '—' },
+    { label: '容積率',    value: rule.floor_area_ratio  !== null ? `${rule.floor_area_ratio}%`  : '—' },
+  ]
+
+  const handleApply = () => {
+    const confirmed = window.confirm(
+      `確定要帶入法規檢核？\n\n` +
+      items.map(i => `${i.label}：${i.value}`).join('\n') +
+      `\n\n切換至「法規檢核」後，請補填基地面積、樓層等建築資料。`
+    )
+    if (!confirmed) return
+
+    const partial: Partial<BuildingInput> = {
+      district,
+      planAreaId,
+      zoneType,
+      specialZoneIds: [],
+    }
+    onApplyToCheck(partial)
+    setApplied(true)
+  }
+
+  return (
+    <div className="px-5 py-4 border-t border-gray-100 space-y-3">
+      <div className="text-xs font-semibold text-gray-700 mb-1">帶入法規檢核</div>
+
+      {/* 預覽帶入欄位 */}
+      <div className="space-y-1.5">
+        {items.map(item => (
+          <div key={item.label} className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5">
+            <span className="text-green-500 text-xs shrink-0">✓</span>
+            <span className="text-xs text-green-700">
+              <span className="font-medium">{item.label}：</span>{item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-xs text-gray-400 leading-relaxed">
+        切換後請補填基地面積、樓層數、建築用途等資料，再執行檢核。
+      </p>
+
+      {applied ? (
+        <div className="w-full h-11 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center gap-2 text-green-700 font-semibold text-sm">
+          ✓ 已帶入法規檢核 — 請切換至「法規檢核」頁面
+        </div>
+      ) : (
+        <button
+          onClick={handleApply}
+          className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+        >
+          📋 帶入法規檢核 →
+        </button>
+      )}
     </div>
   )
 }
@@ -321,7 +427,11 @@ function NoResultCard({ planName, zoneName, allZones }: NoResultProps) {
 
 // ─── 主元件 ───────────────────────────────────────────────────────
 
-export default function ZoningRulesPanel() {
+interface Props {
+  onApplyToCheck?: (partial: Partial<BuildingInput>) => void
+}
+
+export default function ZoningRulesPanel({ onApplyToCheck }: Props) {
   const [meta,     setMeta]     = useState<DbMeta | null>(null)
   const [dbReady,  setDbReady]  = useState<boolean | null>(null)
 
@@ -508,7 +618,7 @@ export default function ZoningRulesPanel() {
       {/* ── 查詢結果 ──────────────────────────────────────────────── */}
       {!querying && rule !== undefined && (
         rule
-          ? <RuleCard rule={rule} />
+          ? <RuleCard rule={rule} onApplyToCheck={onApplyToCheck} />
           : <NoResultCard
               planName={lastPlan}
               zoneName={lastZone}

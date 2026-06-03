@@ -60,14 +60,21 @@ const BREADCRUMBS: Partial<Record<AppView, string[]>> = {
 
 // ─── 三欄檢核版面（含 RWD） ────────────────────────────────────
 
+type CheckSource = 'land_query' | 'zoning_rules' | null
+
 interface CheckViewProps {
   initialInput?: Partial<BuildingInput>
-  fromLandQuery?: boolean
+  checkSource?: CheckSource
   /** Called on mobile when a result card is tapped — opens BottomSheet */
   onMobileSelect?: (result: CheckResult) => void
 }
 
-function CheckView({ initialInput, fromLandQuery, onMobileSelect }: CheckViewProps) {
+const CHECK_SOURCE_LABELS: Record<NonNullable<CheckSource>, { icon: string; title: string; desc: string; color: string; border: string; textTitle: string; textDesc: string }> = {
+  land_query:    { icon: '📍', title: '已從地號查詢帶入', desc: '請補填建築資料後開始檢核', color: 'bg-blue-50', border: 'border-blue-200', textTitle: 'text-blue-700', textDesc: 'text-blue-500' },
+  zoning_rules:  { icon: '📋', title: '已從建蔽容積查詢帶入', desc: '都市計畫、使用分區、建蔽率、容積率已自動填入，請補填建築資料後開始檢核', color: 'bg-green-50', border: 'border-green-200', textTitle: 'text-green-700', textDesc: 'text-green-600' },
+}
+
+function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps) {
   const merged = { ...DEFAULT_INPUT, ...initialInput }
   const [input, setInput] = useState<BuildingInput>(merged)
   const [report, setReport] = useState<CheckReport | null>(null)
@@ -96,17 +103,20 @@ function CheckView({ initialInput, fromLandQuery, onMobileSelect }: CheckViewPro
   // ── Shared panel content (reused by both mobile and desktop layouts) ──
   const leftContent = (
     <>
-      {fromLandQuery && (
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
-            <span className="text-blue-500 text-xs">📍</span>
-            <div>
-              <div className="text-xs font-bold text-blue-700">已從地號查詢帶入</div>
-              <div className="text-xs text-blue-500">請補填建築資料後開始檢核</div>
+      {checkSource && (() => {
+        const cfg = CHECK_SOURCE_LABELS[checkSource]
+        return (
+          <div className="px-4 pt-3 pb-2">
+            <div className={`flex items-start gap-2 ${cfg.color} border ${cfg.border} rounded-xl px-3 py-2`}>
+              <span className="text-xs mt-0.5 shrink-0">{cfg.icon}</span>
+              <div>
+                <div className={`text-xs font-bold ${cfg.textTitle}`}>{cfg.title}</div>
+                <div className={`text-xs ${cfg.textDesc} mt-0.5 leading-relaxed`}>{cfg.desc}</div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
       <InputForm value={input} onChange={setInput} onSubmit={handleCheck} loading={loading} />
     </>
   )
@@ -232,21 +242,21 @@ export default function Home() {
 
   const [view, setView] = useState<AppView>('dashboard')
   const [pendingInput, setPendingInput] = useState<Partial<BuildingInput> | undefined>(undefined)
-  const [fromLandQuery, setFromLandQuery] = useState(false)
+  const [checkSource, setCheckSource] = useState<CheckSource>(null)
 
   // Mobile: BottomSheet state for DetailPanel
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetResult, setSheetResult] = useState<CheckResult | null>(null)
 
-  const handleApplyToCheck = useCallback((partial: Partial<BuildingInput>) => {
+  const handleApplyToCheck = useCallback((partial: Partial<BuildingInput>, source: NonNullable<CheckSource> = 'land_query') => {
     setPendingInput(partial)
-    setFromLandQuery(true)
+    setCheckSource(source)
     setView('check')
   }, [])
 
   const handleNavigate = useCallback((nextView: AppView) => {
     if (nextView !== 'check') {
-      setFromLandQuery(false)
+      setCheckSource(null)
     }
     setSheetOpen(false)
     setView(nextView)
@@ -267,21 +277,21 @@ export default function Home() {
       case 'check':
         return (
           <CheckView
-            key={fromLandQuery ? JSON.stringify(pendingInput) : 'default'}
-            initialInput={fromLandQuery ? pendingInput : undefined}
-            fromLandQuery={fromLandQuery}
+            key={checkSource ? JSON.stringify(pendingInput) : 'default'}
+            initialInput={checkSource ? pendingInput : undefined}
+            checkSource={checkSource}
             onMobileSelect={handleMobileSelect}
           />
         )
 
       case 'land_query':
-        return <LandQueryView onApplyToCheck={handleApplyToCheck} />
+        return <LandQueryView onApplyToCheck={partial => handleApplyToCheck(partial, 'land_query')} />
 
       case 'zoning_rules':
         return (
           <div className="w-full md:flex-1 md:overflow-y-auto bg-gray-50 pb-24 md:pb-6">
             <div className="w-full max-w-[430px] md:max-w-2xl mx-auto px-4 md:px-6 py-4 md:py-6">
-              <ZoningRulesPanel />
+              <ZoningRulesPanel onApplyToCheck={partial => handleApplyToCheck(partial, 'zoning_rules')} />
             </div>
           </div>
         )
