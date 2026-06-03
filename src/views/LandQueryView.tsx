@@ -673,6 +673,50 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
   const [loading, setLoading] = useState(false)
   const [applied, setApplied] = useState(false)
 
+  // 建蔽容積官方彙總表（自動查詢）
+  interface ZoningRuleResult {
+    coverage_ratio:   number | null
+    floor_area_ratio: number | null
+    max_far:          number | null
+    bonus_multiplier: number | null
+    remarks:          string | null
+    urban_plan_name:  string
+    zone_name:        string
+  }
+  const [zoningRule, setZoningRule]           = useState<ZoningRuleResult | null>(null)
+  const [zoningRuleLoading, setZoningRuleLoading] = useState(false)
+  const [zoningRuleSource, setZoningRuleSource]   = useState<string>('')
+
+  const fetchZoningRule = useCallback(async (detailPlan: string, urbanPlan: string, zoneShortName: string) => {
+    setZoningRule(null)
+    setZoningRuleLoading(true)
+    setZoningRuleSource('')
+    try {
+      // 優先用細部計畫名稱查，若無結果再試都市計畫名稱
+      const tryQuery = async (planName: string) => {
+        const params = new URLSearchParams({ exact_plan: planName, exact_zone: zoneShortName })
+        const res  = await fetch(`/api/zoning-rules/query?${params}`)
+        const data = await res.json()
+        return (data.ok && data.rule) ? data.rule as ZoningRuleResult : null
+      }
+
+      let rule: ZoningRuleResult | null = null
+      if (detailPlan) {
+        rule = await tryQuery(detailPlan)
+        if (rule) setZoningRuleSource(detailPlan)
+      }
+      if (!rule && urbanPlan) {
+        rule = await tryQuery(urbanPlan)
+        if (rule) setZoningRuleSource(urbanPlan)
+      }
+      setZoningRule(rule)
+    } catch {
+      // 靜默失敗，不阻斷主查詢流程
+    } finally {
+      setZoningRuleLoading(false)
+    }
+  }, [])
+
   // 讀取 GIS 狀態
   const refreshGisState = () => {
     const ready = hasImportedData()
@@ -707,12 +751,18 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
     }
 
     // 座標模式：直接走 PIP（不需要 NLSC API）
+    setZoningRule(null)
     setLoading(true)
     try {
       const coordinate: WGS84Coordinate = [parseFloat(lng), parseFloat(lat)]
       const adapter = new TaichungUrbanPlanAdapter()
       const res = await adapter.queryByCoordinate(coordinate)
       setResult(res)
+      // PIP 成功 → 自動查建蔽容積官方彙總表
+      if (res.zoning) {
+        const z = res.zoning
+        fetchZoningRule(z.detail_plan_name ?? '', z.urban_plan_name, z.zone_short_name)
+      }
     } finally {
       setLoading(false)
     }
@@ -1068,9 +1118,78 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
                       {z.announcement_no && <DataRow label="公告文號" value={z.announcement_no} mono />}
                     </div>
 
+                    {/* ── 官方建蔽容積彙總表（自動查詢） ──────────── */}
+                    <div className="border-t border-gray-100">
+                      <div className="px-5 pt-4 pb-1 flex items-center justify-between">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          官方建蔽容積彙總表
+                        </div>
+                        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                          臺中市 112.4.14 一版
+                        </span>
+                      </div>
+
+                      {zoningRuleLoading && (
+                        <div className="px-5 py-4 flex items-center gap-2 text-xs text-gray-400">
+                          <div className="w-3 h-3 border border-gray-300 border-t-gray-500 rounded-full animate-spin shrink-0" />
+                          查詢官方彙總表中…
+                        </div>
+                      )}
+
+                      {!zoningRuleLoading && zoningRule && (
+                        <div className="px-5 pb-4 space-y-3">
+                          {/* 數值卡片 */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-center">
+                              <div className="text-2xl font-bold text-red-700">
+                                {zoningRule.coverage_ratio !== null ? `${zoningRule.coverage_ratio}%` : '—'}
+                              </div>
+                              <div className="text-xs text-red-600 font-medium mt-0.5">建蔽率上限</div>
+                            </div>
+                            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-center">
+                              <div className="text-2xl font-bold text-blue-700">
+                                {zoningRule.floor_area_ratio !== null ? `${zoningRule.floor_area_ratio}%` : '—'}
+                              </div>
+                              <div className="text-xs text-blue-600 font-medium mt-0.5">容積率</div>
+                              {zoningRule.max_far !== null && (
+                                <div className="text-xs text-blue-400 mt-0.5">上限 {zoningRule.max_far}%</div>
+                              )}
+                            </div>
+                          </div>
+                          {/* 獎勵倍數 */}
+                          {zoningRule.bonus_multiplier !== null && (
+                            <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-2 text-xs text-green-700">
+                              <span className="font-medium">開放空間獎勵倍數：</span>{zoningRule.bonus_multiplier} 倍
+                            </div>
+                          )}
+                          {/* 資料來源 */}
+                          <div className="text-xs text-gray-400 leading-relaxed">
+                            <span className="font-medium text-gray-500">對應計畫：</span>
+                            {zoningRule.urban_plan_name}
+                            <span className="mx-1">·</span>
+                            {zoningRule.zone_name}
+                          </div>
+                        </div>
+                      )}
+
+                      {!zoningRuleLoading && !zoningRule && (
+                        <div className="px-5 pb-4 text-xs text-gray-400 leading-relaxed">
+                          彙總表中查無「{z.zone_short_name}」對應資料。
+                          可至&nbsp;
+                          <button
+                            className="underline text-blue-500"
+                            onClick={() => {/* parent will handle navigation */}}
+                          >
+                            建蔽容積查詢
+                          </button>
+                          &nbsp;手動搜尋。
+                        </div>
+                      )}
+                    </div>
+
                     {/* 備註 */}
                     {z.note && (
-                      <div className="px-5 py-3 border-b border-gray-100 bg-amber-50">
+                      <div className="px-5 py-3 border-t border-gray-100 bg-amber-50">
                         <div className="flex items-start gap-2">
                           <IconInfo size={14} className="text-amber-500 shrink-0 mt-0.5" />
                           <p className="text-xs text-amber-700 leading-relaxed">{z.note}</p>
