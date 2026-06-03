@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { BuildingInput } from '@/types'
-import { queryZoningByParcel, getAdapterStatus } from '@/lib/adapters'
 import { TaichungUrbanPlanAdapter } from '@/lib/adapters/TaichungUrbanPlanAdapter'
-import type { ZoningQueryResult, LandParcelInput } from '@/lib/adapters/types'
+import type { ZoningQueryResult } from '@/lib/adapters/types'
 import { importGeoJSON, previewFields } from '@/lib/gis/importPipeline'
 import { saveZoningFeatures, loadZoningMeta, clearZoningStore, hasImportedData, warmupCache } from '@/lib/gis/zoningStore'
 import { DATA_SOURCE_LABELS } from '@/lib/gis/types'
 import type { WGS84Coordinate } from '@/lib/gis/types'
-import { TAICHUNG_DISTRICTS } from '@/data/regionRules'
 import { IconSearch, IconMap, IconCheck, IconWarning, IconInfo, IconDoc } from '@/components/icons'
 
 interface Props {
@@ -447,13 +445,8 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
   const [gisMeta, setGisMeta] = useState<ReturnType<typeof loadZoningMeta>>(null)
   const [showImport, setShowImport] = useState(false)
 
-  // 查詢模式
-  const [queryMode, setQueryMode] = useState<'parcel' | 'coordinate'>('parcel')
-
-  // 地號查詢
-  const [district, setDistrict] = useState('')
-  const [section, setSection] = useState('')
-  const [parcelNumber, setParcelNumber] = useState('')
+  // 查詢模式（預設座標查詢，地號查詢需 NLSC IP 白名單）
+  const [queryMode, setQueryMode] = useState<'parcel' | 'coordinate'>('coordinate')
 
   // 座標查詢
   const [lng, setLng] = useState('')
@@ -477,31 +470,19 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
     warmupCache()
   }, [])
 
-  const canQueryParcel = gisReady && district.trim() && section.trim() && parcelNumber.trim()
-  const canQueryCoord  = gisReady && !!parseFloat(lng) && !!parseFloat(lat)
+  const canQueryCoord = gisReady && !!parseFloat(lng) && !!parseFloat(lat)
 
   const handleQuery = async () => {
+    if (queryMode !== 'coordinate') return
     setLoading(true)
     setApplied(false)
     setResult(null)
-
     try {
-      if (queryMode === 'parcel') {
-        const parcel: LandParcelInput = {
-          county: '台中市',
-          district: district.trim(),
-          section: section.trim(),
-          number: parcelNumber.trim(),
-        }
-        const res = await queryZoningByParcel(parcel)
-        setResult(res)
-      } else {
-        // 座標查詢 — 直接走 PIP
-        const coordinate: WGS84Coordinate = [parseFloat(lng), parseFloat(lat)]
-        const adapter = new TaichungUrbanPlanAdapter()
-        const res = await adapter.queryByCoordinate(coordinate)
-        setResult(res)
-      }
+      // 座標查詢 — 直接走 PIP（不需要 NLSC API）
+      const coordinate: WGS84Coordinate = [parseFloat(lng), parseFloat(lat)]
+      const adapter = new TaichungUrbanPlanAdapter()
+      const res = await adapter.queryByCoordinate(coordinate)
+      setResult(res)
     } finally {
       setLoading(false)
     }
@@ -531,8 +512,8 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
             <IconMap size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-bold text-gray-800">地號使用分區查詢</h2>
-            <p className="text-xs text-gray-500">台中市都市計畫GIS — 依地號或座標查詢建蔽率、容積率</p>
+            <h2 className="text-base font-bold text-gray-800">使用分區查詢</h2>
+            <p className="text-xs text-gray-500">台中市都市計畫GIS — 依 WGS84 座標查詢建蔽率、容積率</p>
           </div>
           <DataSourceBadge status={gisReady ? 'IMPORTED_GIS' : 'MOCK'} />
         </div>
@@ -596,89 +577,97 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
 
         {/* ── 查詢模式切換 ─────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-200 p-1.5 flex gap-1">
-          {(['parcel', 'coordinate'] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => { setQueryMode(mode); setResult(null) }}
-              className={`flex-1 h-9 rounded-xl text-sm font-semibold transition-colors ${
-                queryMode === mode
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {mode === 'parcel' ? '依地號查詢' : '依座標查詢'}
-            </button>
-          ))}
+          {/* 座標查詢（主要功能） */}
+          <button
+            onClick={() => { setQueryMode('coordinate'); setResult(null) }}
+            className={`flex-1 h-9 rounded-xl text-sm font-semibold transition-colors ${
+              queryMode === 'coordinate'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            ✓ 依座標查詢
+          </button>
+          {/* 地號查詢（需申請 NLSC 授權） */}
+          <button
+            onClick={() => { setQueryMode('parcel'); setResult(null) }}
+            className={`flex-1 h-9 rounded-xl text-sm font-semibold transition-colors ${
+              queryMode === 'parcel'
+                ? 'bg-gray-200 text-gray-600 shadow-sm'
+                : 'text-gray-400 hover:text-gray-500'
+            }`}
+          >
+            地號查詢 🔒
+          </button>
         </div>
 
         {/* ── 查詢表單 ─────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
 
           {queryMode === 'parcel' ? (
-            <>
-              {/* 縣市（固定） */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">縣市</label>
-                <div className="mt-1.5 h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 flex items-center text-sm text-gray-500">
-                  台中市
+            /* ── 地號查詢：需申請 NLSC 授權，目前不可用 ── */
+            <div className="space-y-3">
+              {/* 主要說明卡 */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-lg shrink-0">🔒</span>
+                  <div>
+                    <div className="text-sm font-semibold text-amber-800">地號查詢目前不可用</div>
+                    <div className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                      地號查詢需呼叫內政部 NLSC <strong>CAD_004</strong>「地段號查詢坐標」API，
+                      此 API 採用 <strong>IP 白名單授權機制</strong>，必須向 NLSC 申請固定伺服器 IP 綁定。
+                    </div>
+                  </div>
+                </div>
+
+                {/* 技術限制說明 */}
+                <div className="bg-amber-100/60 rounded-lg px-3 py-2.5 space-y-1.5 text-xs text-amber-700">
+                  <div className="font-semibold text-amber-800">為何在 Vercel 上不可行？</div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="shrink-0 mt-0.5">•</span>
+                    <span>NLSC CAD_004 使用 <strong>IP 白名單</strong>（非 Bearer Token），授權與伺服器固定 IP 綁定</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="shrink-0 mt-0.5">•</span>
+                    <span>Vercel Serverless 的出口 IP 為<strong>動態浮動</strong>，無法向 NLSC 申請白名單</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="shrink-0 mt-0.5">•</span>
+                    <span>若部署於<strong>固定 IP 的自架伺服器</strong>，可向 NLSC 申請 IP 綁定後啟用</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* 行政區 */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    行政區 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={district}
-                    onChange={e => { setDistrict(e.target.value); setSection('') }}
-                    className="mt-1.5 w-full h-11 px-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              {/* 申請資訊 */}
+              <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-2 text-xs">
+                <div className="font-semibold text-gray-700">NLSC API 申請資訊</div>
+                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-gray-600">
+                  <span className="text-gray-400">API 代號</span>
+                  <span className="font-mono">CAD_004（地段號查詢坐標）</span>
+                  <span className="text-gray-400">授權機制</span>
+                  <span>IP 白名單綁定（非 Token）</span>
+                  <span className="text-gray-400">申請對象</span>
+                  <span>政府機關（免費）/ 民營機構（年訂閱制）</span>
+                  <span className="text-gray-400">官方文件</span>
+                  <a
+                    href="https://maps.nlsc.gov.tw/S09SOA/homePage.action?Language=ZH"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline hover:text-blue-800 break-all"
                   >
-                    <option value="">— 選擇 —</option>
-                    {TAICHUNG_DISTRICTS.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* 地段（自由輸入，GIS Polygon 層無固定地段清單） */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    地段 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={section}
-                    onChange={e => setSection(e.target.value)}
-                    placeholder="例：賴源段"
-                    className="mt-1.5 w-full h-11 px-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
+                    maps.nlsc.gov.tw/S09SOA
+                  </a>
+                  <span className="text-gray-400">聯絡電話</span>
+                  <span>(04) 2252-2966 分機 256</span>
                 </div>
               </div>
 
-              {/* 地號 */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  地號 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={parcelNumber}
-                  onChange={e => setParcelNumber(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && canQueryParcel && handleQuery()}
-                  placeholder="例：123-5 或 0001-0000"
-                  className="mt-1.5 w-full h-11 px-3 rounded-xl border border-gray-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
+              {/* 替代方案提示 */}
+              <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-xs text-green-700">
+                <span className="font-semibold">✓ 替代方案：</span>使用 Google Maps 或地籍圖資網路便民服務系統查詢地號座標後，
+                切換至「<button className="underline font-semibold" onClick={() => setQueryMode('coordinate')}>依座標查詢</button>」直接輸入 WGS84 座標。
               </div>
-
-              {/* NLSC 說明 */}
-              <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-700 leading-relaxed">
-                <span className="font-semibold">地號查詢流程：</span>
-                地號 → NLSC API 轉 WGS84 座標 → GIS PIP 查詢分區<br />
-                <span className="text-blue-500">需設定環境變數 <code className="bg-blue-100 px-1 rounded">NLSC_API_TOKEN</code>（內政部 CAD_004 授權 Token）。</span>
-              </div>
-            </>
+            </div>
           ) : (
             <>
               {/* 座標輸入（WGS84） */}
@@ -722,29 +711,33 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
             </>
           )}
 
-          {/* 查詢按鈕 */}
-          <button
-            onClick={handleQuery}
-            disabled={queryMode === 'parcel' ? !canQueryParcel : !canQueryCoord}
-            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                查詢中…
-              </>
-            ) : (
-              <>
-                <IconSearch size={16} />
-                {queryMode === 'parcel' ? '查詢使用分區' : '查詢此座標分區'}
-              </>
-            )}
-          </button>
+          {/* 查詢按鈕（僅座標模式顯示） */}
+          {queryMode === 'coordinate' && (
+            <>
+              <button
+                onClick={handleQuery}
+                disabled={!canQueryCoord}
+                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    查詢中…
+                  </>
+                ) : (
+                  <>
+                    <IconSearch size={16} />
+                    查詢此座標分區
+                  </>
+                )}
+              </button>
 
-          {!gisReady && (
-            <p className="text-xs text-orange-500 text-center">
-              ⚠ 請先匯入 GeoJSON 資料才能查詢
-            </p>
+              {!gisReady && (
+                <p className="text-xs text-orange-500 text-center">
+                  ⚠ 請先匯入 GeoJSON 資料才能查詢
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -790,20 +783,11 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
                           <h3 className="text-white text-xl font-bold leading-tight">{z.zone_name}</h3>
                           <div className="text-blue-200 text-sm mt-0.5">簡稱：{z.zone_short_name}</div>
                         </div>
-                        {queryMode === 'coordinate' && (
-                          <div className="text-right shrink-0">
-                            <div className="text-blue-200 text-xs">WGS84</div>
-                            <div className="text-white font-mono text-xs">{parseFloat(lat).toFixed(5)}</div>
-                            <div className="text-blue-300 font-mono text-xs">{parseFloat(lng).toFixed(5)}</div>
-                          </div>
-                        )}
-                        {queryMode === 'parcel' && (
-                          <div className="text-right shrink-0">
-                            <div className="text-blue-200 text-xs">地號</div>
-                            <div className="text-white font-mono font-bold">{result.parcel.district} {result.parcel.section}</div>
-                            <div className="text-blue-300 font-mono text-sm">{result.parcel.number}</div>
-                          </div>
-                        )}
+                        <div className="text-right shrink-0">
+                          <div className="text-blue-200 text-xs">WGS84</div>
+                          <div className="text-white font-mono text-xs">{parseFloat(lat).toFixed(5)}</div>
+                          <div className="text-blue-300 font-mono text-xs">{parseFloat(lng).toFixed(5)}</div>
+                        </div>
                       </div>
                     </div>
 
@@ -907,22 +891,30 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
           <summary className="px-5 py-3 text-xs font-semibold text-gray-400 cursor-pointer hover:text-gray-600">
             Adapter 狀態（開發除錯）
           </summary>
-          <div className="px-5 pb-4 space-y-2">
-            {getAdapterStatus().map(a => (
-              <div key={a.name} className="flex items-center justify-between text-xs">
-                <div>
-                  <span className="font-mono text-gray-600">{a.name}</span>
-                  <span className="text-gray-400 ml-2">{a.description}</span>
-                </div>
-                <span className={`font-semibold px-2 py-0.5 rounded ${
-                  a.available ? 'text-green-700 bg-green-50' : 'text-gray-400 bg-gray-100'
-                }`}>
-                  {a.available ? '✓ 可用' : '— 停用'}
-                </span>
+          <div className="px-5 pb-4 space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-mono text-gray-600">TaichungUrbanPlanAdapter</span>
+                <span className="text-gray-400 ml-2">台中市都市計畫GIS PIP 查詢</span>
               </div>
-            ))}
-            <div className="text-xs text-gray-400 pt-1 border-t border-gray-100">
-              NLSCParcelAdapter（地號轉座標）：停用 — 需申請 NLSC API 金鑰
+              <span className={`font-semibold px-2 py-0.5 rounded ${
+                gisReady ? 'text-green-700 bg-green-50' : 'text-gray-400 bg-gray-100'
+              }`}>
+                {gisReady ? '✓ 可用' : '— 待匯入'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-mono text-gray-600">NLSCParcelAdapter</span>
+                <span className="text-gray-400 ml-2">CAD_004 地段號查詢坐標</span>
+              </div>
+              <span className="font-semibold px-2 py-0.5 rounded text-gray-400 bg-gray-100">
+                — 停用
+              </span>
+            </div>
+            <div className="text-gray-400 pt-1 border-t border-gray-100 leading-relaxed">
+              NLSCParcelAdapter 停用原因：CAD_004 採 IP 白名單授權，Vercel 動態出口 IP 不支援。
+              如需啟用，請部署至固定 IP 伺服器並向 NLSC 申請綁定。
             </div>
           </div>
         </details>

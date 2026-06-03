@@ -1,138 +1,64 @@
 /**
- * NLSCParcelAdapter — 地號轉座標（Phase 4 Real API）
- *
- * 資料來源：內政部國土測繪中心（NLSC）地籍 API
- * API 說明：https://api.nlsc.gov.tw/
- * 需申請服務：CAD_004（GetLandPositionLongitudeLatitude）
+ * NLSCParcelAdapter — 地號轉座標（目前不可用）
  *
  * ────────────────────────────────────────────────────────────────
- * 使用方式：
- *   1. 至 https://api.nlsc.gov.tw/ 申請帳號並開通 CAD_004 服務
- *   2. 取得授權 Token
- *   3. 在 Vercel / .env.local 設定 NLSC_API_TOKEN=<your_token>
- *   4. isAvailable() 回傳 true，地號查詢功能啟用
+ * ⚠️  CAD_004「地段號查詢坐標」需要向內政部國土測繪中心申請授權
  *
- * 若未設定 NLSC_API_TOKEN：
- *   - isAvailable() = false
- *   - 地號查詢不可用，UI 顯示「請改用座標查詢」
+ * 授權機制：IP 白名單（非 Bearer Token）
+ *   - NLSC 審核通過後，將你的伺服器固定 IP 加入白名單
+ *   - 從白名單 IP 發出的請求直接有效，無需任何 Authorization Header
+ *   - Vercel 的出口 IP 為動態浮動，無法做 IP 白名單，故此方案
+ *     在 Vercel 平台上不可行
+ *
+ * 申請資訊：
+ *   官方 API 清單   : https://maps.nlsc.gov.tw/S09SOA/pro/Api_ajax_list.jsp
+ *   介接說明頁      : https://maps.nlsc.gov.tw/S09SOA/homePage.action?Language=ZH
+ *   申請表下載      : https://maps.nlsc.gov.tw/S09SOA/Download.action?fileName=…
+ *   聯絡電話        : (04) 2252-2966 分機 256
+ *
+ * 申請對象：
+ *   - 政府機關 / 學術單位：免費，提交公文申請
+ *   - 民營機構 / 私人公司：付費年訂閱制（115年度訂閱申請書）
+ *
+ * 目前狀態：isAvailable() = false，不產生任何假資料
  * ────────────────────────────────────────────────────────────────
- *
- * 查詢流程（透過 Next.js API Route 代理，避免 CORS）：
- *   /api/nlsc/parcel-coord?district=北區&section=錦村段&parcelNo=0001-0000
- *   → 鄉鎮代碼查詢（靜態表）
- *   → ListLandSection API → 地段代碼
- *   → GetLandPositionLongitudeLatitude API → TWD97 座標
- *   → TWD97 → WGS84 逆投影
- *   → 回傳 [lng, lat]
  */
 
 import type { WGS84Coordinate } from '../gis/types'
 
 export interface ParcelInput {
-  city:     string  // e.g. '台中市' or '臺中市'
+  city:     string  // e.g. '台中市'
   district: string  // e.g. '北區'
   section:  string  // e.g. '錦村段'
-  parcelNo: string  // e.g. '0001-0000' 或 '1' 或 '1-0'
+  parcelNo: string  // e.g. '0001-0000'
 }
 
 export type ParcelToCoordinateResult =
-  | {
-      ok: true
-      coordinate: WGS84Coordinate
-      source: 'NLSC_API'
-      queryMs: number
-    }
-  | {
-      ok: false
-      error: string
-      source: 'NLSC_API'
-    }
-
-/** API route 回應格式 */
-interface ParcelCoordResponse {
-  ok: true
-  lng: number
-  lat: number
-  townCode: string
-  sectCode: string
-  formattedNo: string
-  source: string
-}
-
-interface ParcelCoordError {
-  ok: false
-  error: string
-}
+  | { ok: true;  coordinate: WGS84Coordinate; source: 'NLSC_API'; queryMs: number }
+  | { ok: false; error: string; source: 'NLSC_API' }
 
 export class NLSCParcelAdapter {
   readonly name = 'NLSCParcelAdapter'
-  readonly description = '內政部國土測繪中心地籍 API — 地號轉 WGS84 座標（需 NLSC_API_TOKEN）'
+  readonly description = '內政部 NLSC 地籍 API（CAD_004）— 需申請 IP 白名單授權，目前不可用'
 
   /**
-   * 是否可用：依賴 /api/nlsc/parcel-coord 回應判斷。
-   * 客戶端無法直接讀取 process.env，透過 API route 的 503 回應偵測。
-   *
-   * 注意：此方法需要非同步確認，但為了符合 GISAdapter 介面設計
-   * 採用快取旗標（在首次查詢後更新）。
+   * 目前不可用。
+   * CAD_004 需向 NLSC 申請 IP 白名單，且 Vercel 動態 IP 不支援此機制。
    */
   isAvailable(): boolean {
-    // 保守回傳 true — 實際可用性由 parcelToCoordinate 的錯誤回應決定
-    // 若環境變數未設，API route 回傳 503，錯誤訊息會指引使用者設定 token
-    return true
+    return false
   }
 
-  /**
-   * 地號 → WGS84 座標
-   *
-   * 透過 Next.js API route (/api/nlsc/parcel-coord) 代理 NLSC API，
-   * 避免瀏覽器直接呼叫 NLSC 可能遭遇的 CORS 問題。
-   */
-  async parcelToCoordinate(input: ParcelInput): Promise<ParcelToCoordinateResult> {
-    const t0 = Date.now()
-
-    const params = new URLSearchParams({
-      district: input.district,
-      section:  input.section,
-      parcelNo: input.parcelNo,
-    })
-
-    let res: Response
-    try {
-      res = await fetch(`/api/nlsc/parcel-coord?${params.toString()}`)
-    } catch (e) {
-      return {
-        ok: false,
-        error: `NLSC 查詢網路錯誤：${String(e)}`,
-        source: 'NLSC_API',
-      }
-    }
-
-    let data: ParcelCoordResponse | ParcelCoordError
-    try {
-      data = await res.json()
-    } catch {
-      return {
-        ok: false,
-        error: `NLSC API 回應解析失敗（HTTP ${res.status}）`,
-        source: 'NLSC_API',
-      }
-    }
-
-    if (!data.ok) {
-      return {
-        ok: false,
-        error: (data as ParcelCoordError).error,
-        source: 'NLSC_API',
-      }
-    }
-
-    const coord = data as ParcelCoordResponse
-
+  async parcelToCoordinate(_input: ParcelInput): Promise<ParcelToCoordinateResult> {
     return {
-      ok: true,
-      coordinate: [coord.lng, coord.lat],
+      ok: false,
+      error: [
+        'NLSC CAD_004 地籍 API 目前不可用。',
+        '此 API 採用 IP 白名單授權機制，需向內政部國土測繪中心申請固定伺服器 IP 綁定。',
+        'Vercel 平台使用動態出口 IP，無法取得白名單資格。',
+        '請改用「座標查詢」功能，直接輸入 WGS84 座標進行分區查詢。',
+      ].join(' '),
       source: 'NLSC_API',
-      queryMs: Date.now() - t0,
     }
   }
 }
