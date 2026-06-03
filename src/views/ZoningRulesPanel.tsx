@@ -15,27 +15,87 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { BuildingInput } from '@/types'
-import { getPlanAreasByDistrict } from '@/data/regionRules'
+import { getPlanAreasByDistrict, TAICHUNG_DISTRICTS, ZONE_TYPES } from '@/data/regionRules'
 
-// ─── 工具：zone_name (阿拉伯數字) → zoneType (中文數字) ──────────
+// ─── 工具：district 正規化 ────────────────────────────────────────
+
+/**
+ * DB 的 district 欄位格式不一（"大里"/"北、東"/"北屯"），需轉成
+ * TAICHUNG_DISTRICTS 所用格式（"大里區"/"北區"/"北屯區"）。
+ * 策略：取第一個值，若不含「區」則嘗試加上，若仍找不到就原樣回傳。
+ */
+function normalizeDistrict(raw: string | null): string {
+  if (!raw) return ''
+  const first = raw.split(/[,，、\s]/)[0].trim()
+  if (!first) return ''
+  // 已含「區」→ 直接驗證是否在清單
+  if (first.endsWith('區') && (TAICHUNG_DISTRICTS as readonly string[]).includes(first)) return first
+  // 嘗試補「區」
+  const withSuffix = first + '區'
+  if ((TAICHUNG_DISTRICTS as readonly string[]).includes(withSuffix)) return withSuffix
+  return first
+}
+
+// ─── 工具：zone_name → zoneType（最佳努力映射） ───────────────────
 
 const ARABIC_TO_CHINESE: Record<string, string> = {
   '1': '一', '2': '二', '3': '三', '4': '四', '5': '五',
-  '6': '六', '7': '七', '8': '八', '9': '九', '0': '零',
+  '6': '六', '7': '七', '8': '八', '9': '九',
 }
 
-/** 將「住2」「商1」等 DB 分區名稱轉成 rule engine 的 zoneType 格式「住二」「商一」 */
+/**
+ * 將 DB 的使用分區名稱對應到 rule engine 的 ZONE_TYPES。
+ *
+ * DB 格式範例：
+ *   "住2"、"住2-1"、"住2-A"           → 住二
+ *   "住(臨未達15公尺計畫道路)"         → 住一（fallback）
+ *   "住1-1(建築基地面臨...)"           → 住一
+ *   "住"                               → 住一
+ *   "商3"、"商3(特)"                   → 商三
+ *   "乙種工業區"、"乙工1"              → 工業區
+ *   "農業區"                           → 農業區
+ */
 function toZoneType(zoneName: string): string {
-  // 只轉換末尾阿拉伯數字，保留前綴（如「住」「商」「工」）
-  return zoneName.replace(/(\d+)$/, (_, n: string) =>
-    n.split('').map(c => ARABIC_TO_CHINESE[c] ?? c).join('')
-  )
-}
+  // 1. 去掉括號（全半形）後的條件說明："住2(特)" → "住2"
+  const stripped = zoneName.replace(/[（(（][^）)）]*/g, '').replace(/[）)）]/g, '').trim()
 
-/** 從行政區（可能是逗號/頓號分隔多個）取第一個 */
-function firstDistrict(district: string | null): string {
-  if (!district) return ''
-  return district.split(/[,，、]/)[0].trim()
+  // 2. 工業類：乙種工業區、乙工1、工業區 等
+  if (/工業/.test(stripped) || /^乙工/.test(stripped) || /^甲工/.test(stripped)) return '工業區'
+
+  // 3. 農業類
+  if (/^農/.test(stripped)) return '農業區'
+
+  // 4. 行政類
+  if (/^行政/.test(stripped)) return '行政區'
+
+  // 5. 文教類
+  if (/^文[教]/.test(stripped)) return '文教區'
+
+  // 6. 住/商 + 阿拉伯數字（含變體 1-1, 1-A 等）→ 取第一個數字轉中文
+  const residComm = stripped.match(/^([住商])(\d+)/)
+  if (residComm) {
+    const cat = residComm[1]           // 住 或 商
+    const num = ARABIC_TO_CHINESE[residComm[2]] ?? residComm[2]
+    const candidate = cat + num        // e.g. "住二"
+    if ((ZONE_TYPES as readonly string[]).includes(candidate)) return candidate
+  }
+
+  // 7. 住/商 + 中文數字
+  const chineseNum = stripped.match(/^([住商])(一|二|三|四|五)/)
+  if (chineseNum) {
+    const candidate = chineseNum[1] + chineseNum[2]
+    if ((ZONE_TYPES as readonly string[]).includes(candidate)) return candidate
+  }
+
+  // 8. 裸字「住」「商」→ fallback 到一
+  if (stripped === '住' || stripped.startsWith('住(') || stripped.startsWith('住甲') || stripped === '住甲') return '住一'
+  if (stripped === '商' || stripped.startsWith('商(')) return '商一'
+
+  // 9. 已是合法 ZONE_TYPE → 直接回傳
+  if ((ZONE_TYPES as readonly string[]).includes(stripped)) return stripped
+
+  // 10. 無法映射 → 回傳原始值（select 會顯示為「請選擇」，但至少不出錯）
+  return stripped
 }
 
 // ─── 型別 ─────────────────────────────────────────────────────────
@@ -299,18 +359,20 @@ function ApplyToCheckSection({ rule, onApplyToCheck }: {
 }) {
   const [applied, setApplied] = useState(false)
 
-  const district = firstDistrict(rule.district)
+  const district = normalizeDistrict(rule.district)
   const zoneType = toZoneType(rule.zone_name)
 
-  // 依行政區對應 planAreaId
-  const planAreaId = district
-    ? (getPlanAreasByDistrict(district)[0]?.id ?? 'general_taichung')
-    : 'general_taichung'
+  // planAreaId 取第一個符合行政區的計畫
+  const planAreas   = district ? getPlanAreasByDistrict(district) : []
+  const planAreaId  = planAreas[0]?.id ?? 'general_taichung'
+  const planAreaName = planAreas[0]?.name ?? '台中市都市計畫區（一般）'
 
   const items = [
-    { label: '行政區',    value: district || '（未知）' },
-    { label: '都市計畫',  value: rule.urban_plan_name },
-    { label: '使用分區',  value: rule.zone_name },
+    { label: '行政區',    value: district || '（未知）',
+      note: district !== rule.district ? `DB原值：${rule.district}` : undefined },
+    { label: '都市計畫區', value: planAreaName },
+    { label: '使用分區（帶入）', value: zoneType,
+      note: zoneType !== rule.zone_name ? `DB原值：${rule.zone_name}` : undefined },
     { label: '建蔽率',    value: rule.coverage_ratio    !== null ? `${rule.coverage_ratio}%`    : '—' },
     { label: '容積率',    value: rule.floor_area_ratio  !== null ? `${rule.floor_area_ratio}%`  : '—' },
   ]
@@ -340,11 +402,16 @@ function ApplyToCheckSection({ rule, onApplyToCheck }: {
       {/* 預覽帶入欄位 */}
       <div className="space-y-1.5">
         {items.map(item => (
-          <div key={item.label} className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5">
-            <span className="text-green-500 text-xs shrink-0">✓</span>
-            <span className="text-xs text-green-700">
-              <span className="font-medium">{item.label}：</span>{item.value}
-            </span>
+          <div key={item.label} className="bg-green-50 border border-green-100 rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-green-500 text-xs shrink-0">✓</span>
+              <span className="text-xs text-green-700">
+                <span className="font-medium">{item.label}：</span>{item.value}
+              </span>
+            </div>
+            {item.note && (
+              <div className="ml-5 text-xs text-gray-400 mt-0.5">{item.note}</div>
+            )}
           </div>
         ))}
       </div>
