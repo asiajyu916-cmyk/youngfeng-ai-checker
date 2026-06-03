@@ -127,6 +127,24 @@ export function queryZoningRules(opts: QueryOptions): ZoningRule[] {
 }
 
 /**
+ * 取得特定都市計畫下所有不重複的使用分區名稱
+ */
+export function getZoneNamesForPlan(urban_plan_name: string): string[] {
+  const db = openDb()
+  if (!db) return []
+  try {
+    const rows = db.prepare(`
+      SELECT DISTINCT zone_name FROM zoning_rules
+      WHERE urban_plan_name = ?
+      ORDER BY zone_name
+    `).all(urban_plan_name) as { zone_name: string }[]
+    return rows.map(r => r.zone_name)
+  } finally {
+    db.close()
+  }
+}
+
+/**
  * 取得所有不重複的使用分區名稱（供 UI 篩選）
  */
 export function getAllZoneNames(): string[] {

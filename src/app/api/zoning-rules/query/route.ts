@@ -25,6 +25,7 @@ import {
   hasZoningRulesDb,
   getAllZoneNames,
   getAllPlanNames,
+  getZoneNamesForPlan,
 } from '@/lib/db/zoningRulesDb'
 
 export const runtime = 'nodejs'   // 確保使用 Node.js runtime（better-sqlite3 需要）
@@ -50,6 +51,12 @@ export async function GET(req: NextRequest) {
   // ── 分區清單 ────────────────────────────────────────────────────
   if (searchParams.get('zones') === '1') {
     return NextResponse.json({ ok: true, zones: getAllZoneNames() })
+  }
+
+  // ── 特定計畫的分區清單 ───────────────────────────────────────
+  const zones_for_plan = searchParams.get('zones_for_plan')
+  if (zones_for_plan) {
+    return NextResponse.json({ ok: true, zones: getZoneNamesForPlan(zones_for_plan) })
   }
 
   // ── 計畫清單 ────────────────────────────────────────────────────
