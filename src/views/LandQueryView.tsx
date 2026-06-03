@@ -689,12 +689,26 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
   const canQueryCoord = gisReady && !!parseFloat(lng) && !!parseFloat(lat)
 
   const handleQuery = async () => {
-    if (queryMode !== 'coordinate') return
-    setLoading(true)
     setApplied(false)
     setResult(null)
+
+    // 地號模式：NLSC CAD_004 不可用，顯示引導訊息
+    if (queryMode === 'parcel') {
+      setResult({
+        parcel:    { county: '台中市', district, section, number: parcelNumber },
+        source:    'NLSC CAD_004（未授權）',
+        sourceUrl: 'https://maps.nlsc.gov.tw/S09SOA/homePage.action?Language=ZH',
+        queryTime: new Date().toISOString(),
+        zoning:    null,
+        confidence: 'low',
+        error: '目前地號轉座標功能需 NLSC IP 白名單授權（CAD_004），尚未取得授權。請改用「座標查詢」模式直接輸入 WGS84 座標進行分區查詢。',
+      })
+      return
+    }
+
+    // 座標模式：直接走 PIP（不需要 NLSC API）
+    setLoading(true)
     try {
-      // 座標查詢 — 直接走 PIP（不需要 NLSC API）
       const coordinate: WGS84Coordinate = [parseFloat(lng), parseFloat(lat)]
       const adapter = new TaichungUrbanPlanAdapter()
       const res = await adapter.queryByCoordinate(coordinate)
@@ -946,33 +960,29 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
             </>
           )}
 
-          {/* 查詢按鈕（僅座標模式顯示） */}
-          {queryMode === 'coordinate' && (
-            <>
-              <button
-                onClick={handleQuery}
-                disabled={!canQueryCoord}
-                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    查詢中…
-                  </>
-                ) : (
-                  <>
-                    <IconSearch size={16} />
-                    查詢此座標分區
-                  </>
-                )}
-              </button>
+          {/* 查詢按鈕 */}
+          <button
+            onClick={handleQuery}
+            disabled={queryMode === 'coordinate' && !canQueryCoord}
+            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                查詢中…
+              </>
+            ) : (
+              <>
+                <IconSearch size={16} />
+                {queryMode === 'parcel' ? '查詢使用分區' : '查詢此座標分區'}
+              </>
+            )}
+          </button>
 
-              {!gisReady && (
-                <p className="text-xs text-orange-500 text-center">
-                  ⚠ 請先匯入 GeoJSON 資料才能查詢
-                </p>
-              )}
-            </>
+          {queryMode === 'coordinate' && !gisReady && (
+            <p className="text-xs text-orange-500 text-center">
+              ⚠ 請先匯入 GeoJSON 資料才能查詢
+            </p>
           )}
         </div>
 
