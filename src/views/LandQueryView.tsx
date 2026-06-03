@@ -8,6 +8,7 @@ import { importGeoJSON, previewFields } from '@/lib/gis/importPipeline'
 import { saveZoningFeatures, loadZoningMeta, clearZoningStore, hasImportedData, warmupCache } from '@/lib/gis/zoningStore'
 import { DATA_SOURCE_LABELS } from '@/lib/gis/types'
 import type { WGS84Coordinate } from '@/lib/gis/types'
+import { TAICHUNG_DISTRICTS_ORDERED, getTownCode } from '@/lib/gis/taichungTownCodes'
 import { IconSearch, IconMap, IconCheck, IconWarning, IconInfo, IconDoc } from '@/components/icons'
 
 interface Props {
@@ -73,6 +74,215 @@ function DataSourceBadge({ status }: { status: 'MOCK' | 'IMPORTED_GIS' | 'LIVE_A
       }`} />
       {cfg.label}
     </span>
+  )
+}
+
+// ─── 地段搜尋下拉元件 ──────────────────────────────────────────
+
+interface Section { code: string; name: string }
+
+interface SectionSelectProps {
+  district: string         // 行政區名稱
+  value: string            // 已選地段名稱
+  onChange: (name: string, code: string) => void
+  disabled?: boolean
+}
+
+function SectionSelect({ district, value, onChange, disabled }: SectionSelectProps) {
+  const [sections, setSections]   = useState<Section[]>([])
+  const [loading,  setLoading]    = useState(false)
+  const [error,    setError]      = useState<string | null>(null)
+  const [query,    setQuery]      = useState('')        // 搜尋文字
+  const [open,     setOpen]       = useState(false)
+  const [focused,  setFocused]    = useState(-1)        // 鍵盤游標位置
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const listRef   = useRef<HTMLUListElement>(null)
+  const wrapRef   = useRef<HTMLDivElement>(null)
+
+  // 當行政區變更時，重新載入地段清單
+  useEffect(() => {
+    if (!district) {
+      setSections([])
+      setQuery('')
+      setError(null)
+      return
+    }
+    const townCode = getTownCode(district)
+    if (!townCode) {
+      setError(`找不到「${district}」的鄉鎮代碼`)
+      return
+    }
+
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    setSections([])
+    setQuery('')
+    onChange('', '')   // 清空已選地段
+
+    fetch(`/api/nlsc/sections?townCode=${townCode}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return
+        if (data.ok) {
+          setSections(data.sections)
+        } else {
+          setError(data.error ?? '載入失敗')
+        }
+      })
+      .catch(e => {
+        if (!cancelled) setError(String(e))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [district])
+
+  // 同步 query 顯示文字（外部 value 被清空時）
+  useEffect(() => {
+    if (!value) setQuery('')
+  }, [value])
+
+  // 點擊外部關閉
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // 過濾地段（包含搜尋字詞）
+  const filtered = query
+    ? sections.filter(s => s.name.includes(query) || s.code.includes(query))
+    : sections
+
+  const handleSelect = (s: Section) => {
+    setQuery(s.name)
+    onChange(s.name, s.code)
+    setOpen(false)
+    setFocused(-1)
+    inputRef.current?.blur()
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value)
+    onChange('', '')   // 輸入中清除選取狀態
+    setOpen(true)
+    setFocused(-1)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+      setOpen(true)
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const next = Math.min(focused + 1, filtered.length - 1)
+      setFocused(next)
+      // 滾動到可見
+      listRef.current?.children[next]?.scrollIntoView({ block: 'nearest' })
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const prev = Math.max(focused - 1, 0)
+      setFocused(prev)
+      listRef.current?.children[prev]?.scrollIntoView({ block: 'nearest' })
+    } else if (e.key === 'Enter' && focused >= 0 && filtered[focused]) {
+      e.preventDefault()
+      handleSelect(filtered[focused])
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  const isSelected = !!value && value === query
+
+  return (
+    <div ref={wrapRef} className="relative">
+      {/* 輸入框 */}
+      <div className={`relative flex items-center h-11 rounded-xl border text-sm transition-colors ${
+        disabled || !district
+          ? 'bg-gray-50 border-gray-200'
+          : 'bg-white border-gray-300 focus-within:ring-2 focus-within:ring-blue-400 focus-within:border-blue-400'
+      }`}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => { if (sections.length > 0) setOpen(true) }}
+          onKeyDown={handleKeyDown}
+          disabled={disabled || !district || loading}
+          placeholder={
+            !district    ? '請先選擇行政區'  :
+            loading      ? '載入地段中…'     :
+            error        ? '載入失敗'        :
+            sections.length === 0 ? '無地段資料' :
+            `搜尋 ${sections.length} 個地段…`
+          }
+          className="flex-1 px-3 bg-transparent outline-none text-gray-800 placeholder:text-gray-400 disabled:text-gray-400"
+        />
+
+        {/* 狀態圖示 */}
+        <div className="px-2.5 shrink-0">
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+          ) : isSelected ? (
+            <span className="text-green-500 text-sm">✓</span>
+          ) : error ? (
+            <span className="text-red-400 text-sm" title={error}>!</span>
+          ) : district && sections.length > 0 ? (
+            <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+            </svg>
+          ) : null}
+        </div>
+      </div>
+
+      {/* 下拉清單 */}
+      {open && filtered.length > 0 && (
+        <ul
+          ref={listRef}
+          className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto py-1"
+        >
+          {filtered.map((s, i) => (
+            <li
+              key={s.code}
+              onMouseDown={e => { e.preventDefault(); handleSelect(s) }}
+              onMouseEnter={() => setFocused(i)}
+              className={`flex items-center justify-between px-3 py-2 cursor-pointer text-sm transition-colors ${
+                i === focused
+                  ? 'bg-blue-50 text-blue-700'
+                  : s.name === value
+                  ? 'bg-green-50 text-green-700'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span>{s.name}</span>
+              <span className="text-xs font-mono text-gray-300 ml-2 shrink-0">{s.code}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* 搜尋無結果 */}
+      {open && query && filtered.length === 0 && !loading && sections.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-sm text-gray-400">
+          找不到「{query}」，請重新輸入
+        </div>
+      )}
+
+      {/* 載入錯誤 */}
+      {error && !loading && (
+        <div className="mt-1 text-xs text-red-500 px-1">{error}</div>
+      )}
+    </div>
   )
 }
 
@@ -448,6 +658,12 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
   // 查詢模式（預設座標查詢，地號查詢需 NLSC IP 白名單）
   const [queryMode, setQueryMode] = useState<'parcel' | 'coordinate'>('coordinate')
 
+  // 地號查詢（表單欄位）
+  const [district,     setDistrict]     = useState('')
+  const [section,      setSection]      = useState('')     // 地段名稱
+  const [sectionCode,  setSectionCode]  = useState('')     // 地段代碼（NLSC）
+  const [parcelNumber, setParcelNumber] = useState('')
+
   // 座標查詢
   const [lng, setLng] = useState('')
   const [lat, setLat] = useState('')
@@ -605,69 +821,88 @@ export default function LandQueryView({ onApplyToCheck }: Props) {
         <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
 
           {queryMode === 'parcel' ? (
-            /* ── 地號查詢：需申請 NLSC 授權，目前不可用 ── */
-            <div className="space-y-3">
-              {/* 主要說明卡 */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 space-y-3">
-                <div className="flex items-start gap-2.5">
-                  <span className="text-lg shrink-0">🔒</span>
-                  <div>
-                    <div className="text-sm font-semibold text-amber-800">地號查詢目前不可用</div>
-                    <div className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                      地號查詢需呼叫內政部 NLSC <strong>CAD_004</strong>「地段號查詢坐標」API，
-                      此 API 採用 <strong>IP 白名單授權機制</strong>，必須向 NLSC 申請固定伺服器 IP 綁定。
-                    </div>
-                  </div>
-                </div>
-
-                {/* 技術限制說明 */}
-                <div className="bg-amber-100/60 rounded-lg px-3 py-2.5 space-y-1.5 text-xs text-amber-700">
-                  <div className="font-semibold text-amber-800">為何在 Vercel 上不可行？</div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="shrink-0 mt-0.5">•</span>
-                    <span>NLSC CAD_004 使用 <strong>IP 白名單</strong>（非 Bearer Token），授權與伺服器固定 IP 綁定</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="shrink-0 mt-0.5">•</span>
-                    <span>Vercel Serverless 的出口 IP 為<strong>動態浮動</strong>，無法向 NLSC 申請白名單</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="shrink-0 mt-0.5">•</span>
-                    <span>若部署於<strong>固定 IP 的自架伺服器</strong>，可向 NLSC 申請 IP 綁定後啟用</span>
-                  </div>
+            /* ── 地號查詢：表單 + 地段下拉 + NLSC 授權說明 ── */
+            <>
+              {/* 縣市（固定） */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">縣市</label>
+                <div className="mt-1.5 h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 flex items-center text-sm text-gray-500">
+                  台中市
                 </div>
               </div>
 
-              {/* 申請資訊 */}
-              <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-2 text-xs">
-                <div className="font-semibold text-gray-700">NLSC API 申請資訊</div>
-                <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-gray-600">
-                  <span className="text-gray-400">API 代號</span>
-                  <span className="font-mono">CAD_004（地段號查詢坐標）</span>
-                  <span className="text-gray-400">授權機制</span>
-                  <span>IP 白名單綁定（非 Token）</span>
-                  <span className="text-gray-400">申請對象</span>
-                  <span>政府機關（免費）/ 民營機構（年訂閱制）</span>
-                  <span className="text-gray-400">官方文件</span>
-                  <a
-                    href="https://maps.nlsc.gov.tw/S09SOA/homePage.action?Language=ZH"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline hover:text-blue-800 break-all"
+              <div className="grid grid-cols-2 gap-3">
+                {/* 行政區 */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    行政區 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={district}
+                    onChange={e => {
+                      setDistrict(e.target.value)
+                      setSection('')
+                      setSectionCode('')
+                    }}
+                    className="mt-1.5 w-full h-11 px-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                   >
-                    maps.nlsc.gov.tw/S09SOA
-                  </a>
-                  <span className="text-gray-400">聯絡電話</span>
-                  <span>(04) 2252-2966 分機 256</span>
+                    <option value="">— 選擇 —</option>
+                    {TAICHUNG_DISTRICTS_ORDERED.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 地段（搜尋下拉） */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    地段 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="mt-1.5">
+                    <SectionSelect
+                      district={district}
+                      value={section}
+                      onChange={(name, code) => {
+                        setSection(name)
+                        setSectionCode(code)
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 替代方案提示 */}
-              <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-xs text-green-700">
-                <span className="font-semibold">✓ 替代方案：</span>使用 Google Maps 或地籍圖資網路便民服務系統查詢地號座標後，
-                切換至「<button className="underline font-semibold" onClick={() => setQueryMode('coordinate')}>依座標查詢</button>」直接輸入 WGS84 座標。
+              {/* 地號 */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  地號 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={parcelNumber}
+                  onChange={e => setParcelNumber(e.target.value)}
+                  placeholder="例：123-5 或 0001-0000"
+                  className="mt-1.5 w-full h-11 px-3 rounded-xl border border-gray-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
               </div>
-            </div>
+
+              {/* NLSC 授權說明（小型，非侵入式） */}
+              <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 leading-relaxed">
+                <div className="flex items-start gap-2">
+                  <span className="shrink-0 mt-0.5">🔒</span>
+                  <div>
+                    <span className="font-semibold">地號→座標轉換需申請 NLSC CAD_004 IP 白名單授權（暫不可用）</span><br />
+                    目前可先填妥地號資訊備查。如需查詢分區，請切換至&nbsp;
+                    <button
+                      className="underline font-semibold text-amber-800"
+                      onClick={() => { setQueryMode('coordinate'); setResult(null) }}
+                    >
+                      座標查詢
+                    </button>
+                    &nbsp;直接輸入 WGS84 座標。
+                  </div>
+                </div>
+              </div>
+            </>
           ) : (
             <>
               {/* 座標輸入（WGS84） */}
