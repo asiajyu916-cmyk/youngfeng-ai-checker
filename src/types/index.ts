@@ -231,6 +231,7 @@ export type AppView =
   | 'cases'
   | 'history'
   | 'land_query'
+  | 'zoning_rules'
   | 'regulation_db'
   | 'article_search'
   | 'related_laws'

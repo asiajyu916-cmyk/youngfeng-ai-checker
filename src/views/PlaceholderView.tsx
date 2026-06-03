@@ -8,6 +8,7 @@ const VIEW_LABELS: Record<AppView, string> = {
   cases: '案件管理',
   history: '歷史檢核紀錄',
   land_query: '地號查詢',
+  zoning_rules: '建蔽容積查詢',
   regulation_db: '法規資料庫',
   article_search: '條文檢索',
   related_laws: '相關法規',

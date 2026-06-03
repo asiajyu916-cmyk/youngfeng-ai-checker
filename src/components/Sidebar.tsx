@@ -42,7 +42,8 @@ const SECTIONS: NavSection[] = [
       { id: 'check',      label: '法規檢核',      icon: <IconCheck size={15} />, badge: 'V2' },
       { id: 'cases',      label: '案件管理',      icon: <IconFolder size={15} /> },
       { id: 'history',    label: '歷史檢核紀錄',  icon: <IconHistory size={15} /> },
-      { id: 'land_query', label: '地號查詢',      icon: <IconMap size={15} />, badge: 'NEW' },
+      { id: 'land_query',    label: '地號查詢',      icon: <IconMap size={15} />, badge: 'NEW' },
+      { id: 'zoning_rules',  label: '建蔽容積查詢',  icon: <IconBook size={15} /> },
     ],
   },
   {

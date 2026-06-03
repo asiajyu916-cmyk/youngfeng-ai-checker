@@ -15,6 +15,7 @@ import PWAManager from '@/components/PWAManager'
 import LoginPage from '@/components/LoginPage'
 import DashboardView from '@/views/DashboardView'
 import LandQueryView from '@/views/LandQueryView'
+import ZoningRulesPanel from '@/views/ZoningRulesPanel'
 import PlaceholderView from '@/views/PlaceholderView'
 import { runCheck } from '@/lib/ruleEngine'
 import { useAuth } from '@/hooks/useAuth'
@@ -46,6 +47,7 @@ const BREADCRUMBS: Partial<Record<AppView, string[]>> = {
   cases:          ['檢核作業', '案件管理'],
   history:        ['檢核作業', '歷史檢核紀錄'],
   land_query:     ['檢核作業', '地號查詢'],
+  zoning_rules:   ['檢核作業', '建蔽容積查詢'],
   regulation_db:  ['法規資料庫', '法規總覽'],
   article_search: ['法規資料庫', '條文檢索'],
   related_laws:   ['法規資料庫', '相關法規'],
@@ -274,6 +276,15 @@ export default function Home() {
 
       case 'land_query':
         return <LandQueryView onApplyToCheck={handleApplyToCheck} />
+
+      case 'zoning_rules':
+        return (
+          <div className="w-full md:flex-1 md:overflow-y-auto bg-gray-50 pb-24 md:pb-6">
+            <div className="w-full max-w-[430px] md:max-w-2xl mx-auto px-4 md:px-6 py-4 md:py-6">
+              <ZoningRulesPanel />
+            </div>
+          </div>
+        )
 
       case 'ai_assistant':
         return <AIAssistant embedded />
