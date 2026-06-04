@@ -188,9 +188,9 @@ function ComboBox({ label, placeholder, options, value, onChange, loading, disab
 // ─── 可收合區塊 ───────────────────────────────────────────────────
 
 function CollapsibleSection({
-  title, subtitle, children, defaultOpen = true,
+  title, subtitle, children, defaultOpen = true, forceCollapsible = false,
 }: {
-  title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean
+  title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean; forceCollapsible?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
@@ -204,14 +204,39 @@ function CollapsibleSection({
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</h3>
           {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
         </div>
-        <span className={`md:hidden text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}>
+        <span className={`${forceCollapsible ? '' : 'md:hidden '}text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </span>
       </button>
-      <div className={open ? 'block' : 'hidden md:block'}>{children}</div>
+      <div className={open ? 'block' : forceCollapsible ? 'hidden' : 'hidden md:block'}>{children}</div>
     </section>
+  )
+}
+
+// ─── 外部連結卡片 ─────────────────────────────────────────────────
+
+function ExternalLinkCard({ icon, title, url, desc }: {
+  icon: string; title: string; url: string; desc: string
+}) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-start gap-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-xl px-3.5 py-3 transition-colors group"
+    >
+      <span className="text-xl shrink-0 mt-0.5 leading-none">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-blue-700 group-hover:text-blue-800 leading-tight">{title}</div>
+        <div className="text-xs text-gray-400 mt-0.5 leading-relaxed">{desc}</div>
+        <div className="text-[11px] text-gray-300 mt-1 font-mono truncate">{url}</div>
+      </div>
+      <svg className="w-4 h-4 text-gray-300 group-hover:text-blue-400 shrink-0 mt-0.5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+    </a>
   )
 }
 
@@ -540,6 +565,53 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
               </p>
             </div>
           )}
+        </div>
+
+        {/* ── 基地資料與法規查詢（外部參考連結，永遠展開）── */}
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+            <div className="text-sm font-semibold text-gray-700">📍 基地資料與法規查詢</div>
+            <div className="text-xs text-gray-400 mt-0.5">以新分頁開啟，不影響目前輸入資料</div>
+          </div>
+          <div className="px-4 py-3 space-y-2">
+
+            {/* 台中土管查詢 */}
+            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest pt-1">台中土管查詢</div>
+            <ExternalLinkCard
+              icon="🏛"
+              title="台中市都市計畫土地使用分區管制要點查詢"
+              url="https://www.ud.taichung.gov.tw/28928/29030/29058/2346379"
+              desc="查詢台中市各都市計畫區土地使用分區管制要點。"
+            />
+
+            {/* 基地查詢 */}
+            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest pt-1">基地查詢</div>
+            <ExternalLinkCard
+              icon="🗺"
+              title="158 空間資訊網"
+              url="https://lohas.taichung.gov.tw/webgis/"
+              desc="查詢地號、位置、都市計畫區。"
+            />
+            <ExternalLinkCard
+              icon="🌏"
+              title="LUZ 土地使用分區查詢"
+              url="https://luz.nlma.gov.tw/web/"
+              desc="查詢土地使用分區與基地資訊。"
+            />
+
+            {/* 法規查詢 */}
+            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest pt-1">法規查詢</div>
+            <ExternalLinkCard
+              icon="📚"
+              title="建築人法規查詢"
+              url="https://arch-people.com/laws/"
+              desc="查詢建築法、建築技術規則、消防法規及相關法規條文。"
+            />
+
+            <p className="text-[11px] text-gray-400 pt-2 border-t border-gray-100 leading-relaxed">
+              ℹ 查詢完成後，回到本系統填入都市計畫名稱、使用分區、建蔽率、容積率，再執行法規檢核。
+            </p>
+          </div>
         </div>
 
         {/* ── 區塊 1：基地法規資訊（主要） ── */}
