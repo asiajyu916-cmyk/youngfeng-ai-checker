@@ -109,6 +109,12 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
   const requiredCount = report?.required.length ?? 0
 
   // ── Debug Panel ──────────────────────────────────────────────────
+  const matchedRuleValue = (() => {
+    if (!report) return '（尚未檢核）'
+    const triggered = [...report.required, ...report.conditional, ...report.manualReview]
+    return triggered.length > 0 ? triggered.map(r => r.moduleCode).join(', ') : '（無觸發項目）'
+  })()
+
   const debugRows: { label: string; value: string; highlight?: boolean }[] = [
     { label: 'urban_plan_name',  value: input.urbanPlanName  || '（未填）', highlight: !!input.urbanPlanName },
     { label: 'zone_name',        value: input.zoneName       || '（未填）', highlight: !!input.zoneName },
@@ -118,6 +124,8 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
     { label: 'district',         value: input.district || '（未填）— 僅供地址參考' },
     { label: 'planAreaId',       value: input.planAreaId || '（未設定）— 由 urbanPlanName 推導', highlight: false },
     { label: 'zoneType',         value: input.zoneType   || '（未設定）— 由 zoneName 推導' },
+    { label: 'specialZoneIds',   value: input.specialZoneIds.length > 0 ? input.specialZoneIds.join(', ') : '（無）', highlight: input.specialZoneIds.length > 0 },
+    { label: 'matchedRules',     value: matchedRuleValue, highlight: !!report && (report.required.length + report.conditional.length + report.manualReview.length) > 0 },
     { label: 'finalRuleKey',     value: input.urbanPlanName && input.zoneName ? `${input.urbanPlanName} ＋ ${input.zoneName}` : '⚠ 尚未選擇都市計畫區 + 使用分區', highlight: !!(input.urbanPlanName && input.zoneName) },
   ]
 

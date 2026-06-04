@@ -398,6 +398,24 @@ export function getZoningRule(planArea: PlanArea, zoneType: string) {
  * 邏輯：跳過 general_taichung，找第一個 shortName 關鍵字包含於計畫名稱的 PlanArea；
  * 若找不到則回傳 'general_taichung'。
  */
+/**
+ * 依目前 urban_plan_name 篩選相關的特殊管制區。
+ *
+ * 規則：
+ *   water_nan   → 只在計畫名稱含「水湳」時顯示
+ *   hsr_special → 只在計畫名稱含「高鐵」時顯示
+ *   其餘        → 一律顯示（地理條件無法由計畫名稱判斷，由使用者自行勾選）
+ *
+ * 無計畫名稱時：隱藏 water_nan / hsr_special（計畫特定，無法通用）
+ */
+export function getApplicableSpecialZones(urbanPlanName: string): SpecialZone[] {
+  return SPECIAL_ZONES.filter(zone => {
+    if (zone.id === 'water_nan')   return urbanPlanName.includes('水湳')
+    if (zone.id === 'hsr_special') return urbanPlanName.includes('高鐵')
+    return true
+  })
+}
+
 export function resolvePlanAreaIdFromName(urbanPlanName: string): string {
   if (!urbanPlanName) return ''
   for (const p of PLAN_AREAS) {

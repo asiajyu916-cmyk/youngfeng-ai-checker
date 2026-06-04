@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { BuildingInput } from '@/types'
 import {
-  TAICHUNG_DISTRICTS,
-  SPECIAL_ZONES,
+  getApplicableSpecialZones,
   resolvePlanAreaIdFromName,
 } from '@/data/regionRules'
 
@@ -561,69 +560,69 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
           )}
         </CollapsibleSection>
 
-        {/* ── 區塊 2：輔助資訊（行政區） ── */}
-        <CollapsibleSection
-          title="輔助資訊"
-          subtitle="行政區（選填，由地號查詢帶入或手動填寫）"
-          defaultOpen={!!value.district}
-        >
-          <Field label="行政區" hint="不作為土管主判斷條件，可留空">
-            {value.district ? (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2.5 text-sm text-gray-700">
-                  {value.district}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => set('district', '')}
-                  className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 border border-gray-200 rounded-lg"
-                >清除</button>
-              </div>
-            ) : (
-              <Select
-                value={value.district}
-                onChange={v => set('district', v)}
-                options={TAICHUNG_DISTRICTS as unknown as string[]}
-                placeholder="選填，可不選"
-              />
-            )}
-          </Field>
-        </CollapsibleSection>
-
-        {/* ── 區塊 3：特殊管制區 ── */}
-        <CollapsibleSection title="特殊管制區" subtitle="可多選，每項觸發額外法規" defaultOpen={false}>
-          <div className="grid grid-cols-1 gap-2">
-            {SPECIAL_ZONES.map((zone) => {
-              const isChecked = value.specialZoneIds.includes(zone.id)
-              const isAutoSelected = zone.id === 'water_nan' && value.planAreaId === 'water_nan'
-              return (
-                <label
-                  key={zone.id}
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    isChecked
-                      ? 'bg-blue-50 border-blue-300'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  } ${isAutoSelected ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    disabled={isAutoSelected}
-                    onChange={(e) => toggleSpecialZone(zone.id, e.target.checked)}
-                    className="mt-0.5 w-4 h-4 text-blue-600 rounded"
-                  />
-                  <div className="min-w-0">
-                    <div className={`text-sm font-medium ${isChecked ? 'text-blue-700' : 'text-gray-700'}`}>
-                      {zone.name}
-                      {isAutoSelected && <span className="ml-1 text-xs text-blue-500">（自動選取）</span>}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-0.5">{zone.description}</div>
-                  </div>
-                </label>
-              )
-            })}
+        {/* ── 區塊 2：地址參考（唯讀） ── */}
+        {value.district && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 flex items-center gap-2.5">
+            <span className="text-xs text-gray-400 shrink-0">📍 地址參考</span>
+            <span className="text-sm font-medium text-gray-700">{value.district}</span>
+            <span className="ml-auto text-xs text-gray-400 italic">
+              行政區僅供地址參考，不作為建蔽率/容積率或土管判斷依據
+            </span>
           </div>
-        </CollapsibleSection>
+        )}
+
+        {/* ── 區塊 3：特殊管制區（依都市計畫自動篩選） ── */}
+        {(() => {
+          const applicableZones = getApplicableSpecialZones(value.urbanPlanName)
+          const isAutoWaterNan   = value.urbanPlanName.includes('水湳')
+          if (applicableZones.length === 0) return null
+          return (
+            <CollapsibleSection
+              title="特殊管制區"
+              subtitle={value.urbanPlanName
+                ? `依「${value.urbanPlanName.slice(0, 12)}」篩選，${applicableZones.length} 項適用，可多選`
+                : '可多選，每項觸發額外法規'}
+              defaultOpen={false}
+            >
+              <div className="space-y-1.5">
+                {applicableZones.map((zone) => {
+                  const isChecked = value.specialZoneIds.includes(zone.id)
+                  // 水湳計畫時水湳特管區自動勾選
+                  const isAutoSelected = zone.id === 'water_nan' && isAutoWaterNan
+                  return (
+                    <label
+                      key={zone.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isChecked
+                          ? 'bg-blue-50 border-blue-300'
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      } ${isAutoSelected ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked || isAutoSelected}
+                        disabled={isAutoSelected}
+                        onChange={(e) => toggleSpecialZone(zone.id, e.target.checked)}
+                        className="mt-0.5 w-4 h-4 text-blue-600 rounded"
+                      />
+                      <div className="min-w-0">
+                        <div className={`text-sm font-medium ${isChecked ? 'text-blue-700' : 'text-gray-700'}`}>
+                          {zone.name}
+                          {isAutoSelected && <span className="ml-1 text-xs text-blue-500">（自動選取）</span>}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">{zone.description}</div>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                僅顯示與「{value.urbanPlanName || '所選計畫'}」相關之特殊管制區。
+                山坡地、文化資產等地理條件請依基地實際情形勾選。
+              </p>
+            </CollapsibleSection>
+          )
+        })()}
 
         {/* ── 區塊 4：土地資料 ── */}
         <CollapsibleSection title="土地資料">
