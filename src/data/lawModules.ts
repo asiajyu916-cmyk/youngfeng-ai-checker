@@ -145,63 +145,111 @@ export const LAW_MODULES: LawModule[] = [
     applicable_case_types: ALL, priority: 1,
     source_law: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
     check(input) {
-      const planArea = resolvePlanArea(input)
+      const planArea  = resolvePlanArea(input)
       const isWaterNan = input.planAreaId === 'water_nan' || input.specialZoneIds.includes('water_nan')
       const hasUDZone  = input.specialZoneIds.includes('urban_design')
+      const authority  = planArea?.urbanDesign.authority ?? '台中市政府都市發展局'
+      const UD_REMINDER = '人工覆核：請確認該都市計畫區土地使用分區管制要點是否另有都市設計審議規定'
 
+      // ── 例外：水湳園區改用 MOD_03 ─────────────────────────────
       if (isWaterNan) return {
         moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'not_required',
-        triggerReason: '基地位於水湳經貿園區，改依 MOD_03 水湳獨立都審辦理，不適用一般台中市都審',
+        triggerReason: '【水湳例外】基地位於水湳經貿園區，改依 MOD_03 水湳獨立都審辦理，不適用一般台中市都審',
         legalBasis: ['台中市都市設計審議辦法'], priority: 3,
       }
 
-      const hasPlanRule      = planArea !== undefined && planArea.urbanDesign.required > 0
-      const threshold        = planArea?.urbanDesign.required     ?? 3000
-      const reviewThreshold  = planArea?.urbanDesign.manualReview ?? 1000
-      const authority        = planArea?.urbanDesign.authority    ?? '台中市政府都市發展局'
-      const shortName        = planArea?.shortName ?? (input.urbanPlanName?.slice(0, 15) ?? '本計畫區')
+      // ══════════════════════════════════════════════════════════
+      // 第一層：一般台中市都市設計審議規範
+      // 依台中市都市設計審議辦法之通用門檻逐一比對
+      // ══════════════════════════════════════════════════════════
+      const zoneText     = `${input.zoneName} ${input.zoneType}`
+      const isCommercial  = /商業/.test(zoneText)
+      const isResidential = /住宅/.test(zoneText)
 
-      // A — 計畫區有門檻，面積達門檻
-      if (hasPlanRule && input.totalFloorArea >= threshold) return {
+      const layer1: string[] = []
+
+      if (input.floorsAbove > 12)
+        layer1.push(`新建建築物層數 ${input.floorsAbove} 層（>12層）`)
+      if (isCommercial && input.landArea > 3000)
+        layer1.push(`商業區基地面積 ${input.landArea.toLocaleString()}㎡（>3,000㎡）`)
+      if (isResidential && input.landArea > 6000)
+        layer1.push(`住宅區基地面積 ${input.landArea.toLocaleString()}㎡（>6,000㎡）`)
+      if (input.totalFloorArea > 30000)
+        layer1.push(`總樓地板面積 ${input.totalFloorArea.toLocaleString()}㎡（>30,000㎡）`)
+      if (input.isFarTransfer)
+        layer1.push('申請容積移轉')
+      if (hasUDZone)
+        layer1.push('手動勾選都市設計管制區')
+
+      if (layer1.length > 0) return {
         moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'required',
-        triggerReason: `【${shortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達門檻，需送審`,
+        triggerReason: `【一般都審規範觸發】${layer1.join('；')}`,
         legalBasis: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
         priority: 1, notes: `審議機關：${authority}`,
       }
 
-      // B — 灰色區間
-      if (hasPlanRule && input.totalFloorArea >= reviewThreshold) return {
-        moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'manual_review',
-        triggerReason: `【${shortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡（${reviewThreshold.toLocaleString()}～${(threshold - 1).toLocaleString()}㎡ 灰色區間），需確認所屬管制分區細則`,
-        legalBasis: ['台中市都市設計審議辦法'], priority: 1,
-        notes: planArea?.urbanDesign.note ?? UD_REMINDER,
-      }
+      // ══════════════════════════════════════════════════════════
+      // 第二層：土管指定都審
+      // 比對 zoning_rules.db 查出的 zoningRemarks 關鍵字
+      // 只要含以下任一詞，即不得判定不需檢討
+      // ══════════════════════════════════════════════════════════
+      const UD_KEYWORDS = [
+        '都市設計審議', '都市設計審查', '都審',
+        '應提送都市設計審議', '應經都市設計審議',
+        '應送都市設計審議', '需辦理都市設計審議',
+      ]
+      const remarks    = input.zoningRemarks || ''
+      const hitKeyword = UD_KEYWORDS.find(kw => remarks.includes(kw))
 
-      // C — 手動勾選，面積達預設門檻
-      if (hasUDZone && input.totalFloorArea >= 3000) return {
-        moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'required',
-        triggerReason: `手動勾選都市設計管制區，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達預設門檻 3,000㎡，需送審`,
-        legalBasis: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
-        priority: 1, notes: `審議機關：${authority}`,
-      }
-
-      // D — 有計畫名稱或手動勾選，但面積未達門檻：土管未完整結構化，不得判定不需
-      if (input.urbanPlanName || hasUDZone) {
-        const areaDesc = input.totalFloorArea > 0
-          ? `本案 ${input.totalFloorArea.toLocaleString()}㎡ 未達一般門檻（${hasPlanRule ? threshold.toLocaleString() : '3,000'}㎡），`
-          : '面積資料尚未填入，'
-        const src = hasUDZone && !input.urbanPlanName ? '手動勾選都市設計管制區' : `已命中「${shortName}」`
+      if (hitKeyword) {
+        const planLaw = input.urbanPlanName
+          ? `${input.urbanPlanName} 土地使用分區管制要點`
+          : '土地使用分區管制要點'
         return {
-          moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'manual_review',
-          triggerReason: `${src}，${areaDesc}惟各細部計畫或特定區土管條文尚未完整結構化，不得逕行判定不需檢討`,
-          legalBasis: ['台中市都市設計審議辦法'], priority: 2, notes: UD_REMINDER,
+          moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'required',
+          triggerReason: `【土管指定都審】使用分區管制要點備註包含關鍵字「${hitKeyword}」，需辦理都市設計審議`,
+          legalBasis: ['台中市都市設計審議辦法', planLaw],
+          priority: 1,
+          notes: `審議機關：${authority}；土管備註摘錄：${remarks.slice(0, 120)}${remarks.length > 120 ? '…' : ''}`,
         }
       }
 
-      // E — 都市計畫名稱未選定
+      // ══════════════════════════════════════════════════════════
+      // 第三層：計畫區結構化設定門檻（regionRules）
+      // 已在 regionRules.ts 設定明確都審門檻的計畫區
+      // ══════════════════════════════════════════════════════════
+      if (planArea && planArea.urbanDesign.required > 0) {
+        const threshold      = planArea.urbanDesign.required
+        const reviewThreshold = planArea.urbanDesign.manualReview ?? 1000
+        const shortName      = planArea.shortName
+
+        if (input.totalFloorArea >= threshold) return {
+          moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'required',
+          triggerReason: `【特定區都審規範】【${shortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達門檻，需送審`,
+          legalBasis: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
+          priority: 1, notes: `審議機關：${authority}`,
+        }
+
+        if (input.totalFloorArea >= reviewThreshold) return {
+          moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'manual_review',
+          triggerReason: `【特定區都審規範】【${shortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡（${reviewThreshold.toLocaleString()}～${(threshold - 1).toLocaleString()}㎡ 灰色區間），需確認所屬管制分區細則`,
+          legalBasis: ['台中市都市設計審議辦法'], priority: 1,
+          notes: planArea.urbanDesign.note ?? UD_REMINDER,
+        }
+      }
+
+      // ══════════════════════════════════════════════════════════
+      // 兜底：土管尚未完整結構化 → 不得逕行判定不需檢討
+      // ══════════════════════════════════════════════════════════
+      if (input.urbanPlanName) return {
+        moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'manual_review',
+        triggerReason: `【人工覆核：土管尚未結構化】已選定「${input.urbanPlanName}」，惟該計畫區土管條文尚未完整匯入系統，不得逕行判定不需檢討`,
+        legalBasis: ['台中市都市設計審議辦法'], priority: 2, notes: UD_REMINDER,
+      }
+
       return {
         moduleCode: 'MOD_02', moduleName: '台中市都市設計審議', status: 'manual_review',
-        triggerReason: '都市計畫名稱未選定，無法判定是否需辦理都審',
+        triggerReason: '【人工覆核：計畫區未選定】都市計畫名稱未選定，無法判定是否需辦理都審',
         legalBasis: ['台中市都市設計審議辦法'], priority: 3, notes: UD_REMINDER,
       }
     },

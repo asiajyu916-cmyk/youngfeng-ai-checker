@@ -117,19 +117,50 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
     return triggered.length > 0 ? triggered.map(r => r.moduleCode).join(', ') : '（無觸發項目）'
   })()
 
+  // MOD_02 dedicated analysis (computed after check)
+  const mod02Result = report
+    ? [...report.required, ...report.conditional, ...report.manualReview, ...report.notRequired]
+        .find(r => r.moduleCode === 'MOD_02')
+    : null
+  const mod02StatusLabel = mod02Result
+    ? ({ required: '✅ 需檢討', conditional: '🔵 依條件', manual_review: '🔶 人工覆核', not_required: '⬜ 不需' } as Record<string, string>)[mod02Result.status] ?? mod02Result.status
+    : '（尚未檢核）'
+  const mod02TriggerSource = mod02Result
+    ? (mod02Result.triggerReason.match(/【([^】]+)】/)?.[1] ?? '—')
+    : '（尚未檢核）'
+
+  // Keyword hit detection (mirrors MOD_02 check logic for display)
+  const UD_KW = ['都市設計審議', '都市設計審查', '都審', '應提送都市設計審議', '應經都市設計審議', '應送都市設計審議', '需辦理都市設計審議']
+  const zoningRemarksHit = UD_KW.find(kw => input.zoningRemarks?.includes(kw)) ?? null
+
+  // Zone type detection
+  const zoneText = `${input.zoneName} ${input.zoneType}`
+  const debugZoneType = /商業/.test(zoneText) ? '商業區' : /住宅/.test(zoneText) ? '住宅區' : '（未識別）'
+
   const debugRows: { label: string; value: string; highlight?: boolean }[] = [
     { label: 'caseType',         value: input.caseType       || '（未選擇）', highlight: !!input.caseType },
     { label: 'urban_plan_name',  value: input.urbanPlanName  || '（未填）', highlight: !!input.urbanPlanName },
     { label: 'zone_name',        value: input.zoneName       || '（未填）', highlight: !!input.zoneName },
     { label: 'coverage_ratio',   value: input.coverageRatio  !== null ? `${input.coverageRatio}%`  : '（未查到）', highlight: input.coverageRatio !== null },
     { label: 'floor_area_ratio', value: input.floorAreaRatio !== null ? `${input.floorAreaRatio}%` : '（未查到）', highlight: input.floorAreaRatio !== null },
-    { label: 'remarks',          value: input.zoningRemarks ? input.zoningRemarks.slice(0, 60) + (input.zoningRemarks.length > 60 ? '…' : '') : '（無）' },
     { label: 'district',         value: input.district || '（未填）— 僅供地址參考' },
     { label: 'planAreaId',       value: input.planAreaId || '（未設定）— 由 urbanPlanName 推導', highlight: false },
     { label: 'zoneType',         value: input.zoneType   || '（未設定）— 由 zoneName 推導' },
     { label: 'specialZoneIds',   value: input.specialZoneIds.length > 0 ? input.specialZoneIds.join(', ') : '（無）', highlight: input.specialZoneIds.length > 0 },
     { label: 'matchedRules',     value: matchedRuleValue, highlight: !!report && (report.required.length + report.conditional.length + report.manualReview.length) > 0 },
     { label: 'finalRuleKey',     value: input.urbanPlanName && input.zoneName ? `${input.urbanPlanName} ＋ ${input.zoneName}` : '⚠ 尚未選擇都市計畫區 + 使用分區', highlight: !!(input.urbanPlanName && input.zoneName) },
+  ]
+
+  // MOD_02 dedicated debug section rows
+  const mod02DebugRows: { label: string; value: string; highlight?: boolean; warn?: boolean }[] = [
+    { label: 'site_area',                 value: input.landArea > 0 ? `${input.landArea.toLocaleString()} ㎡` : '（未填）', highlight: input.landArea > 0 },
+    { label: 'floor_count',               value: input.floorsAbove > 0 ? `地上 ${input.floorsAbove} 層` : '（未填）', highlight: input.floorsAbove > 0 },
+    { label: 'total_floor_area',          value: input.totalFloorArea > 0 ? `${input.totalFloorArea.toLocaleString()} ㎡` : '（未填）', highlight: input.totalFloorArea > 0 },
+    { label: 'detected_zone_type',        value: debugZoneType, highlight: debugZoneType !== '（未識別）' },
+    { label: 'zoning_rule_remarks',       value: input.zoningRemarks ? input.zoningRemarks.slice(0, 80) + (input.zoningRemarks.length > 80 ? '…' : '') : '（無備註）', highlight: !!input.zoningRemarks },
+    { label: 'ud_keyword_hit',            value: zoningRemarksHit ? `✅ 命中「${zoningRemarksHit}」→ 土管指定都審` : '（無關鍵字）', highlight: !!zoningRemarksHit, warn: false },
+    { label: 'urban_design_trigger_src',  value: mod02TriggerSource, highlight: mod02TriggerSource !== '（尚未檢核）' },
+    { label: 'MOD_02_result',             value: mod02StatusLabel, highlight: mod02Result?.status === 'required', warn: mod02Result?.status === 'manual_review' },
   ]
 
   const debugPanel = (
@@ -146,15 +177,33 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
         <div className="bg-gray-950 border-x border-b border-gray-700 rounded-b-lg px-3 py-2 space-y-1 font-mono">
           {debugRows.map(r => (
             <div key={r.label} className="flex items-start gap-2 text-xs leading-relaxed">
-              <span className="text-gray-500 shrink-0 w-40">{r.label}</span>
+              <span className="text-gray-500 shrink-0 w-44">{r.label}</span>
               <span className={r.highlight === false ? 'text-gray-500' : r.highlight ? 'text-green-400' : 'text-yellow-300'}>
                 {r.value}
               </span>
             </div>
           ))}
+
+          {/* ── MOD_02 都審分析 ─────────────────────────────────── */}
+          <div className="pt-2 mt-2 border-t border-gray-700">
+            <div className="text-gray-500 text-xs mb-1.5">── MOD_02 都審三層分析 ──</div>
+            {mod02DebugRows.map(r => (
+              <div key={r.label} className="flex items-start gap-2 text-xs leading-relaxed">
+                <span className="text-gray-500 shrink-0 w-44">{r.label}</span>
+                <span className={
+                  r.highlight ? 'text-green-400'
+                  : r.warn     ? 'text-orange-400'
+                  : 'text-yellow-300'
+                }>
+                  {r.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
           <div className="pt-1 mt-1 border-t border-gray-800 text-gray-600 text-xs leading-relaxed">
-            ⚠ district 僅供地址參考，不作為建蔽率/容積率/土管判斷依據。
-            判斷依據：urban_plan_name + zone_name → zoning_rules.db
+            ⚠ district 僅供地址參考。判斷依據：urban_plan_name + zone_name → zoning_rules.db<br/>
+            MOD_02 三層：①一般規範門檻 → ②土管關鍵字比對 → ③計畫區設定值 → 兜底人工覆核
           </div>
         </div>
       )}
