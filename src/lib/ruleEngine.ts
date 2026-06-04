@@ -100,30 +100,34 @@ function checkMOD02(input: BuildingInput): CheckResult {
     }
   }
 
-  // 未勾選都市設計管制區
-  if (!hasUrbanDesignZone) {
+  // 判斷是否有都審判斷依據：
+  //   ① planArea 明確設定都審門檻（required > 0）→ 不需手動勾選，由計畫區設定自動觸發
+  //   ② 用戶手動勾選「都市設計管制區」（適用於 planArea 無明確門檻時）
+  const hasPlanDesignRule = planArea !== undefined && planArea.urbanDesign.required > 0
+  if (!hasPlanDesignRule && !hasUrbanDesignZone) {
     return {
       moduleCode: 'MOD_02',
       moduleName: '台中市都市設計審議',
       status: 'not_required',
-      triggerReason: '未勾選位於都市設計審議管制範圍，如有疑問請向台中市都市發展局確認',
+      triggerReason: '所在都市計畫區無都審規定，且未勾選都市設計管制區',
       legalBasis: ['台中市都市設計審議辦法'],
       priority: 3,
     }
   }
 
-  // 取得本計畫區的都審門檻
+  // 取得本計畫區的都審門檻（planArea 優先，手動勾選時使用預設值）
   const threshold = planArea?.urbanDesign.required ?? 3000
   const reviewThreshold = planArea?.urbanDesign.manualReview ?? 1000
   const authority = planArea?.urbanDesign.authority ?? '台中市政府都市發展局'
   const planAreaShortName = planArea?.shortName ?? '本計畫區'
+  const triggerSource = hasPlanDesignRule ? `計畫區設定（${planAreaShortName}）` : '手動勾選都市設計管制區'
 
   if (input.totalFloorArea >= threshold) {
     return {
       moduleCode: 'MOD_02',
       moduleName: '台中市都市設計審議',
       status: 'required',
-      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達門檻，需送審`,
+      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達門檻，需送審｜觸發來源：${triggerSource}`,
       legalBasis: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
       priority: 1,
       notes: `審議機關：${authority}`,
@@ -135,7 +139,7 @@ function checkMOD02(input: BuildingInput): CheckResult {
       moduleCode: 'MOD_02',
       moduleName: '台中市都市設計審議',
       status: 'manual_review',
-      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡（${reviewThreshold.toLocaleString()}～${(threshold - 1).toLocaleString()}㎡ 區間），需確認所屬管制分區細則`,
+      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡（${reviewThreshold.toLocaleString()}～${(threshold - 1).toLocaleString()}㎡ 區間），需確認所屬管制分區細則｜觸發來源：${triggerSource}`,
       legalBasis: ['台中市都市設計審議辦法'],
       priority: 1,
       notes: `${planArea?.urbanDesign.note ?? '請向台中市都市發展局確認是否達當地分區門檻'}`,
