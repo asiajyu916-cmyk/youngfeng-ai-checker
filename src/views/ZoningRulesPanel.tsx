@@ -14,8 +14,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { BuildingInput } from '@/types'
-import { getPlanAreasByDistrict, TAICHUNG_DISTRICTS, ZONE_TYPES } from '@/data/regionRules'
+import type { BuildingInput, PlanArea } from '@/types'
+import { getPlanAreasByDistrict, PLAN_AREAS, TAICHUNG_DISTRICTS, ZONE_TYPES } from '@/data/regionRules'
 
 // ─── 工具：district 正規化 ────────────────────────────────────────
 
@@ -96,6 +96,70 @@ function toZoneType(zoneName: string): string {
 
   // 10. 無法映射 → 回傳原始值（select 會顯示為「請選擇」，但至少不出錯）
   return stripped
+}
+
+// ─── 工具：district + planArea 解析 ──────────────────────────────
+//
+// 核心問題：DB 的 district 欄位可能是 null 或不含「區」，
+// urban_plan_name 才是最可靠的計畫對應依據。
+//
+// 解析順序：
+//   1. normalizeDistrict(rule.district) → 嘗試取得行政區
+//   2. 若仍為空 → 從 urban_plan_name 前綴推斷（大里都市計畫 → 大里區）
+//   3. 取符合 district 的 planAreas 列表
+//   4. 從列表中挑「shortName 與 urban_plan_name 最相符」的計畫（跳過 general_taichung）
+//   5. 找不到則退回 planAreas[0]
+
+function extractDistrictFromPlanName(urban_plan_name: string): string {
+  for (const d of TAICHUNG_DISTRICTS) {
+    const bare = d.replace('區', '')               // "大里區" → "大里"
+    if (urban_plan_name.startsWith(bare)) return d  // "大里都市計畫".startsWith("大里") ✓
+  }
+  return ''
+}
+
+function pickBestPlanArea(planAreas: PlanArea[], urban_plan_name: string): PlanArea | undefined {
+  if (planAreas.length === 0) return undefined
+  if (!urban_plan_name)       return planAreas[0]
+
+  // 跳過 general_taichung，優先尋找名稱包含關鍵字的特定計畫
+  for (const p of planAreas) {
+    if (p.id === 'general_taichung') continue
+    // shortName 範例：'大里都計區' → key = '大里'
+    const key = p.shortName
+      .replace('都計區', '').replace('重劃區', '').replace('園區', '').trim()
+    if (key && urban_plan_name.includes(key)) return p
+  }
+
+  return planAreas[0] // fallback：第一個（含 general_taichung）
+}
+
+interface Resolved {
+  district:     string
+  planAreaId:   string
+  planAreaName: string
+}
+
+function resolveDistrictAndPlan(rule: { district: string | null; urban_plan_name: string }): Resolved {
+  // Step 1：從 DB district 欄位取行政區
+  let district = normalizeDistrict(rule.district)
+
+  // Step 2：district 仍為空 → 從計畫名稱推斷
+  if (!district) {
+    district = extractDistrictFromPlanName(rule.urban_plan_name)
+  }
+
+  // Step 3：取候選計畫區清單（district 空時從全部找）
+  const planAreas = district ? getPlanAreasByDistrict(district) : PLAN_AREAS
+
+  // Step 4：挑最相符的計畫
+  const planArea = pickBestPlanArea(planAreas, rule.urban_plan_name)
+
+  return {
+    district,
+    planAreaId:   planArea?.id   ?? 'general_taichung',
+    planAreaName: planArea?.name ?? '台中市都市計畫區（一般）',
+  }
 }
 
 // ─── 型別 ─────────────────────────────────────────────────────────
@@ -359,13 +423,8 @@ function ApplyToCheckSection({ rule, onApplyToCheck }: {
 }) {
   const [applied, setApplied] = useState(false)
 
-  const district = normalizeDistrict(rule.district)
+  const { district, planAreaId, planAreaName } = resolveDistrictAndPlan(rule)
   const zoneType = toZoneType(rule.zone_name)
-
-  // planAreaId 取第一個符合行政區的計畫
-  const planAreas   = district ? getPlanAreasByDistrict(district) : []
-  const planAreaId  = planAreas[0]?.id ?? 'general_taichung'
-  const planAreaName = planAreas[0]?.name ?? '台中市都市計畫區（一般）'
 
   const items = [
     { label: '行政區',    value: district || '（未知）',
@@ -386,6 +445,13 @@ function ApplyToCheckSection({ rule, onApplyToCheck }: {
     if (!confirmed) return
 
     const partial: Partial<BuildingInput> = {
+      // 新版主欄位（直接使用 DB 原值）
+      urbanPlanName:  rule.urban_plan_name,
+      zoneName:       rule.zone_name,
+      coverageRatio:  rule.coverage_ratio  ?? null,
+      floorAreaRatio: rule.floor_area_ratio ?? null,
+      zoningRemarks:  rule.remarks          ?? '',
+      // 輔助欄位（推導）
       district,
       planAreaId,
       zoneType,

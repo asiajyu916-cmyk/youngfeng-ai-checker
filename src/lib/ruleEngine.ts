@@ -1,24 +1,41 @@
-import type { BuildingInput, CheckResult, CheckReport, RulesetInfo } from '@/types'
+import type { BuildingInput, CheckResult, CheckReport, RulesetInfo, PlanArea } from '@/types'
 import {
   getPlanAreaById,
   getSpecialZoneById,
   SPECIAL_ZONES,
+  resolvePlanAreaIdFromName,
 } from '@/data/regionRules'
 
-// ─── 判斷順序：縣市 → 行政區 → 都市計畫區 → 特殊管制區 → 使用分區 → 用途 → 面積/高度/樓層 ───
+// ─── 判斷順序：都市計畫區（DB） → 使用分區（DB） → 特殊管制區 → 用途 → 面積/高度/樓層 ───
+
+// ─── Helper：由 urbanPlanName 或 planAreaId 取得 PlanArea ───────
+
+function resolveCurrentPlanArea(input: BuildingInput): PlanArea | undefined {
+  // 優先用 planAreaId（由 InputForm 帶入時已正確設定）
+  if (input.planAreaId) {
+    const direct = getPlanAreaById(input.planAreaId)
+    if (direct) return direct
+  }
+  // fallback：從 urbanPlanName 推導
+  if (input.urbanPlanName) {
+    const id = resolvePlanAreaIdFromName(input.urbanPlanName)
+    return getPlanAreaById(id)
+  }
+  return undefined
+}
 
 // ─── Step 1: 解析區域規則集 ───────────────────────────────────
 
 function resolveRuleset(input: BuildingInput): RulesetInfo {
-  const planArea = getPlanAreaById(input.planAreaId)
+  const planArea = resolveCurrentPlanArea(input)
 
   const specialZonesApplied = input.specialZoneIds
     .map((id) => getSpecialZoneById(id)?.name ?? id)
     .filter(Boolean)
 
   return {
-    planAreaId: input.planAreaId,
-    planAreaName: planArea?.name ?? '未選擇都市計畫區',
+    planAreaId:   input.planAreaId || resolvePlanAreaIdFromName(input.urbanPlanName),
+    planAreaName: input.urbanPlanName || planArea?.name || '未選擇都市計畫區',
     planAreaShortName: planArea?.shortName ?? '—',
     district: input.district,
     urbanDesignThresholdRequired: planArea?.urbanDesign.required ?? 3000,
@@ -33,28 +50,32 @@ function resolveRuleset(input: BuildingInput): RulesetInfo {
 // ─── 各模組判斷函式 ───────────────────────────────────────────
 
 function checkMOD01(input: BuildingInput): CheckResult {
-  const planArea = getPlanAreaById(input.planAreaId)
-  const zoningRule = planArea?.zoningRules.find((r) => r.zoneType === input.zoneType)
-
   const notes: string[] = []
-  if (!planArea?.appliesGeneralZoning) {
-    notes.push(`${planArea?.shortName ?? '本計畫區'}有獨立分區管制規定，請勿套用一般台中市分區管制`)
-  }
-  if (zoningRule) {
-    notes.push(`${input.zoneType}：建蔽率 ${zoningRule.maxBuildingCoverage}%、容積率 ${zoningRule.maxFar}%${zoningRule.maxHeight ? `、限高 ${zoningRule.maxHeight}m` : ''}`)
-  } else if (input.zoneType) {
-    notes.push(`${input.zoneType}：請查詢${planArea?.shortName ?? '所在計畫區'}之管制規定`)
-  }
+
+  // 顯示 DB 來源的建蔽率/容積率（優先）
+  const zoneLine = input.zoneName || input.zoneType
+  if (zoneLine) notes.push(`使用分區：${zoneLine}`)
+  if (input.coverageRatio  !== null && input.coverageRatio  !== undefined)
+    notes.push(`建蔽率：${input.coverageRatio}%`)
+  if (input.floorAreaRatio !== null && input.floorAreaRatio !== undefined)
+    notes.push(`容積率：${input.floorAreaRatio}%`)
+  if (input.zoningRemarks)
+    notes.push(`備註：${input.zoningRemarks.replace(/\n/g, ' / ')}`)
+
+  // 土管提醒（固定顯示）
+  notes.push('請確認本案是否另需檢討該都市計畫區之土地使用分區管制要點，並將相關土管條文納入法規檢核項目')
+
+  const planName = input.urbanPlanName || resolveCurrentPlanArea(input)?.name
 
   return {
     moduleCode: 'MOD_01',
     moduleName: '土地使用分區管制',
     status: 'required',
-    triggerReason: '每案必辦：確認使用分區允許用途、建蔽率、容積率、高度限制',
+    triggerReason: `每案必辦：確認「${zoneLine || '使用分區'}」允許用途、建蔽率、容積率、高度限制`,
     legalBasis: [
-      planArea?.appliesGeneralZoning
-        ? '台中市土地使用分區管制自治條例'
-        : `${planArea?.name ?? '所在計畫區'} 計畫書`,
+      planName
+        ? `${planName} 土地使用分區管制要點`
+        : '台中市土地使用分區管制自治條例',
       '都市計畫法 §32',
     ],
     priority: 1,
@@ -63,8 +84,8 @@ function checkMOD01(input: BuildingInput): CheckResult {
 }
 
 function checkMOD02(input: BuildingInput): CheckResult {
-  const planArea = getPlanAreaById(input.planAreaId)
-  const isWaterNan = input.planAreaId === 'water_nan'
+  const planArea = resolveCurrentPlanArea(input)
+  const isWaterNan = input.planAreaId === 'water_nan' || input.specialZoneIds.includes('water_nan')
   const hasUrbanDesignZone = input.specialZoneIds.includes('urban_design')
 
   // 水湳園區改用 MOD_03
@@ -250,7 +271,7 @@ function checkMOD06(input: BuildingInput): CheckResult {
 }
 
 function checkMOD07(input: BuildingInput): CheckResult {
-  const isWaterNan = input.planAreaId === 'water_nan'
+  const isWaterNan = input.planAreaId === 'water_nan' || input.specialZoneIds.includes('water_nan')
 
   if (input.buildingOwnership === 'public' && input.totalFloorArea >= 500) {
     return {
@@ -562,7 +583,7 @@ function checkSpecialZones(input: BuildingInput): CheckResult[] {
 
 function checkFarBonusTotal(input: BuildingInput): CheckResult[] {
   const results: CheckResult[] = []
-  const planArea = getPlanAreaById(input.planAreaId)
+  const planArea = resolveCurrentPlanArea(input)
   const committeeThreshold = planArea?.farBonus.committeeThreshold ?? 1.30
 
   const bonusCount =

@@ -21,6 +21,13 @@ function zoningToPartialInput(r: ZoningQueryResult): Partial<BuildingInput> {
   if (!r.zoning) return {}
   const z = r.zoning
   return {
+    // 新版主欄位（來自 GIS / DB）
+    urbanPlanName:  z.detail_plan_name || z.urban_plan_name,
+    zoneName:       z.zone_name || z.zone_short_name,
+    coverageRatio:  typeof z.coverage_ratio  === 'number' ? z.coverage_ratio  : null,
+    floorAreaRatio: typeof z.floor_area_ratio === 'number' ? z.floor_area_ratio : null,
+    zoningRemarks:  z.note ?? '',
+    // 輔助欄位
     district:       r.parcel.district,
     planAreaId:     z.suggested_plan_area_id ?? 'general_taichung',
     zoneType:       z.suggested_zone_type ?? z.zone_short_name,

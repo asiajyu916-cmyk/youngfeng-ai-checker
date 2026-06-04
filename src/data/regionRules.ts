@@ -390,3 +390,21 @@ export function getPlanAreasByDistrict(district: string): PlanArea[] {
 export function getZoningRule(planArea: PlanArea, zoneType: string) {
   return planArea.zoningRules.find((r) => r.zoneType === zoneType)
 }
+
+/**
+ * 由 zoning_rules.db 的 urban_plan_name 推導 PlanArea ID
+ * 用於 Rule Engine 在不需要使用者選擇 planAreaId 的情況下自動對應。
+ *
+ * 邏輯：跳過 general_taichung，找第一個 shortName 關鍵字包含於計畫名稱的 PlanArea；
+ * 若找不到則回傳 'general_taichung'。
+ */
+export function resolvePlanAreaIdFromName(urbanPlanName: string): string {
+  if (!urbanPlanName) return ''
+  for (const p of PLAN_AREAS) {
+    if (p.id === 'general_taichung') continue
+    const key = p.shortName
+      .replace('都計區', '').replace('重劃區', '').replace('園區', '').trim()
+    if (key && urbanPlanName.includes(key)) return p.id
+  }
+  return 'general_taichung'
+}

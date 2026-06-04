@@ -1,40 +1,198 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { BuildingInput } from '@/types'
 import {
   TAICHUNG_DISTRICTS,
-  PLAN_AREAS,
   SPECIAL_ZONES,
-  ZONE_TYPES,
-  BUILDING_USES,
-  getPlanAreasByDistrict,
-  getZoningRule,
-  getPlanAreaById,
+  resolvePlanAreaIdFromName,
 } from '@/data/regionRules'
 
-interface Props {
-  value: BuildingInput
-  onChange: (v: BuildingInput) => void
-  onSubmit: () => void
-  loading: boolean
+// ─── 工具：zoneName → zoneType（供 Rule Engine 向後相容）────────────
+
+const ARABIC_TO_CHINESE: Record<string, string> = {
+  '1': '一', '2': '二', '3': '三', '4': '四', '5': '五',
 }
 
-// ─── 可收合區塊 ───────────────────────────────────────────────
+function toZoneType(zoneName: string): string {
+  const stripped = zoneName.replace(/[（(（][^）)）]*/g, '').replace(/[）)）]/g, '').trim()
+  if (/工業/.test(stripped) || /^乙工/.test(stripped) || /^甲工/.test(stripped)) return '工業區'
+  if (/^農/.test(stripped)) return '農業區'
+  if (/^行政/.test(stripped)) return '行政區'
+  if (/^文[教]/.test(stripped)) return '文教區'
+  const residComm = stripped.match(/^([住商])(\d+)/)
+  if (residComm) {
+    const candidate = residComm[1] + (ARABIC_TO_CHINESE[residComm[2]] ?? residComm[2])
+    return candidate
+  }
+  const chineseNum = stripped.match(/^([住商])(一|二|三|四|五)/)
+  if (chineseNum) return chineseNum[1] + chineseNum[2]
+  if (stripped === '住' || stripped.startsWith('住(') || stripped.startsWith('住甲')) return '住一'
+  if (stripped === '商' || stripped.startsWith('商(')) return '商一'
+  return stripped
+}
+
+// ─── DB Rule 型別 ────────────────────────────────────────────────
+
+interface DbZoningRule {
+  coverage_ratio:   number | null
+  floor_area_ratio: number | null
+  max_far:          number | null
+  bonus_multiplier: number | null
+  remarks:          string | null
+  urban_plan_name:  string
+  zone_name:        string
+}
+
+// ─── ComboBox ────────────────────────────────────────────────────
+
+interface ComboBoxProps {
+  label:       string
+  placeholder: string
+  options:     string[]
+  value:       string
+  onChange:    (val: string) => void
+  loading?:    boolean
+  disabled?:   boolean
+  hint?:       string
+  required?:   boolean
+}
+
+function ComboBox({ label, placeholder, options, value, onChange, loading, disabled, hint, required }: ComboBoxProps) {
+  const [query,   setQuery]   = useState('')
+  const [open,    setOpen]    = useState(false)
+  const [focused, setFocused] = useState(-1)
+  const wrapRef  = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef  = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    if (!open) setQuery(value)
+  }, [value, open])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setQuery(value)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [value])
+
+  const filtered = query
+    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  const select = (opt: string) => {
+    onChange(opt)
+    setQuery(opt)
+    setOpen(false)
+    setFocused(-1)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+      setOpen(true); setFocused(0); return
+    }
+    if (e.key === 'ArrowDown') {
+      const next = Math.min(focused + 1, filtered.length - 1)
+      setFocused(next)
+      listRef.current?.children[next]?.scrollIntoView({ block: 'nearest' })
+    } else if (e.key === 'ArrowUp') {
+      const prev = Math.max(focused - 1, 0)
+      setFocused(prev)
+      listRef.current?.children[prev]?.scrollIntoView({ block: 'nearest' })
+    } else if (e.key === 'Enter' && focused >= 0 && filtered[focused]) {
+      select(filtered[focused])
+    } else if (e.key === 'Escape') {
+      setOpen(false); setQuery(value)
+    }
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label}
+        {required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      <div className={`relative flex items-center h-11 rounded-lg border text-sm transition-colors ${
+        disabled ? 'bg-gray-50 border-gray-200' :
+        open      ? 'border-blue-400 ring-2 ring-blue-100' :
+                    'border-gray-300 hover:border-gray-400'
+      }`}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={open ? query : value || query}
+          onChange={e => { setQuery(e.target.value); setOpen(true); setFocused(-1) }}
+          onFocus={() => { setOpen(true); setQuery('') }}
+          onKeyDown={handleKeyDown}
+          placeholder={loading ? '載入中…' : placeholder}
+          disabled={disabled || loading}
+          className="flex-1 h-full px-3 bg-transparent focus:outline-none text-gray-800 placeholder:text-gray-400 disabled:text-gray-400 text-sm min-w-0"
+        />
+        <div className="pr-3 shrink-0">
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
+          ) : value ? (
+            <button
+              type="button"
+              onClick={() => { onChange(''); setQuery(''); inputRef.current?.focus() }}
+              className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              tabIndex={-1}
+            >×</button>
+          ) : (
+            <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+            </svg>
+          )}
+        </div>
+      </div>
+      {hint && !open && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+
+      {open && !disabled && filtered.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          {query && (
+            <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-100">
+              {filtered.length} 個符合結果
+            </div>
+          )}
+          <ul ref={listRef} className="max-h-52 overflow-y-auto py-1">
+            {filtered.map((opt, i) => (
+              <li
+                key={opt}
+                onMouseDown={() => select(opt)}
+                onMouseEnter={() => setFocused(i)}
+                className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 ${
+                  i === focused ? 'bg-blue-50 text-blue-800' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <span className="w-3 shrink-0 text-blue-500 text-xs">{opt === value ? '✓' : ''}</span>
+                <span>{opt}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {open && !disabled && filtered.length === 0 && options.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 text-xs text-gray-400">
+          找不到「{query}」
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── 可收合區塊 ───────────────────────────────────────────────────
 
 function CollapsibleSection({
-  title,
-  subtitle,
-  children,
-  defaultOpen = true,
+  title, subtitle, children, defaultOpen = true,
 }: {
-  title: string
-  subtitle?: string
-  children: React.ReactNode
-  defaultOpen?: boolean
+  title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
-
   return (
     <section>
       <button
@@ -52,15 +210,10 @@ function CollapsibleSection({
           </svg>
         </span>
       </button>
-      {/* Always show on desktop; collapsible on mobile */}
-      <div className={open ? 'block' : 'hidden md:block'}>
-        {children}
-      </div>
+      <div className={open ? 'block' : 'hidden md:block'}>{children}</div>
     </section>
   )
 }
-
-// ─── 欄位元件 ─────────────────────────────────────────────────
 
 function Field({ label, children, hint, required }: {
   label: string; children: React.ReactNode; hint?: string; required?: boolean
@@ -91,7 +244,7 @@ function Select({ value, onChange, options, placeholder }: {
     >
       <option value="">{placeholder ?? '請選擇'}</option>
       {options.map((o) => {
-        const val = typeof o === 'string' ? o : o.value
+        const val   = typeof o === 'string' ? o : o.value
         const label = typeof o === 'string' ? o : o.label
         return <option key={val} value={val}>{label}</option>
       })}
@@ -133,30 +286,152 @@ function Toggle({ checked, onChange, label, sublabel }: {
   )
 }
 
-// ─── 主元件 ───────────────────────────────────────────────────
+// ─── 主元件 Props ─────────────────────────────────────────────────
+
+interface Props {
+  value:    BuildingInput
+  onChange: (v: BuildingInput) => void
+  onSubmit: () => void
+  loading:  boolean
+}
+
+// ─── 主元件 ───────────────────────────────────────────────────────
 
 export default function InputForm({ value, onChange, onSubmit, loading }: Props) {
+  // 使用 ref 避免 useEffect 中 stale closure
+  const valueRef = useRef(value)
+  useEffect(() => { valueRef.current = value })
+
   const set = <K extends keyof BuildingInput>(key: K, val: BuildingInput[K]) =>
     onChange({ ...value, [key]: val })
 
-  const availablePlanAreas = useMemo(
-    () => getPlanAreasByDistrict(value.district),
-    [value.district]
-  )
+  // ── DB 資料載入狀態 ──────────────────────────────────────────
+  const [allPlans,     setAllPlans]     = useState<string[]>([])
+  const [plansLoading, setPlansLoading] = useState(true)
+  const [dbAvailable,  setDbAvailable]  = useState(true)
 
-  const handleDistrictChange = (district: string) => {
-    const filtered = getPlanAreasByDistrict(district)
-    const currentValid = filtered.some((p) => p.id === value.planAreaId)
-    onChange({ ...value, district, planAreaId: currentValid ? value.planAreaId : '' })
-  }
+  const [zonesForPlan, setZonesForPlan] = useState<string[]>([])
+  const [zonesLoading, setZonesLoading] = useState(false)
 
-  const handlePlanAreaChange = (planAreaId: string) => {
-    let newSpecialZoneIds = value.specialZoneIds.filter((id) => id !== 'water_nan')
-    if (planAreaId === 'water_nan') {
-      newSpecialZoneIds = [...new Set([...newSpecialZoneIds, 'water_nan'])]
+  const [ruleQuerying, setRuleQuerying] = useState(false)
+  const [fetchedRule,  setFetchedRule]  = useState<DbZoningRule | null>(null)
+
+  // ── 初始載入：所有計畫名稱 ────────────────────────────────────
+  useEffect(() => {
+    fetch('/api/zoning-rules/query?plans=1')
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) setAllPlans(data.plans ?? [])
+        else         setDbAvailable(false)
+      })
+      .catch(() => setDbAvailable(false))
+      .finally(() => setPlansLoading(false))
+  }, [])
+
+  // ── 計畫變更 → 載入分區 ──────────────────────────────────────
+  useEffect(() => {
+    setZonesForPlan([])
+    setFetchedRule(null)
+    if (!value.urbanPlanName) return
+    let cancelled = false
+    setZonesLoading(true)
+    fetch(`/api/zoning-rules/query?zones_for_plan=${encodeURIComponent(value.urbanPlanName)}`)
+      .then(r => r.json())
+      .then(data => { if (!cancelled && data.ok) setZonesForPlan(data.zones ?? []) })
+      .finally(() => { if (!cancelled) setZonesLoading(false) })
+    return () => { cancelled = true }
+  }, [value.urbanPlanName])
+
+  // ── 查詢規則（計畫 + 分區都選定時）─────────────────────────
+  const fetchRule = useCallback(async (plan: string, zone: string) => {
+    if (!plan || !zone) return
+    setRuleQuerying(true)
+    setFetchedRule(null)
+    try {
+      const params = new URLSearchParams({ exact_plan: plan, exact_zone: zone })
+      const res  = await fetch(`/api/zoning-rules/query?${params}`)
+      const data = await res.json()
+      if (data.ok && data.rule) {
+        const rule: DbZoningRule = data.rule
+        setFetchedRule(rule)
+        const planAreaId = resolvePlanAreaIdFromName(plan)
+        const zoneType   = toZoneType(zone)
+        onChange({
+          ...valueRef.current,
+          coverageRatio:  rule.coverage_ratio  ?? null,
+          floorAreaRatio: rule.floor_area_ratio ?? null,
+          zoningRemarks:  rule.remarks          ?? '',
+          planAreaId,
+          zoneType,
+        })
+      } else {
+        setFetchedRule(null)
+        onChange({ ...valueRef.current, coverageRatio: null, floorAreaRatio: null, zoningRemarks: '' })
+      }
+    } catch {
+      setFetchedRule(null)
+    } finally {
+      setRuleQuerying(false)
     }
-    onChange({ ...value, planAreaId, specialZoneIds: newSpecialZoneIds })
+  }, [onChange])
+
+  // ── 分區選定 → 自動查詢 ──────────────────────────────────────
+  useEffect(() => {
+    if (value.urbanPlanName && value.zoneName) {
+      // 若已有 coverageRatio 代表是從外部帶入，不重複查詢
+      if (value.coverageRatio === null && value.floorAreaRatio === null) {
+        fetchRule(value.urbanPlanName, value.zoneName)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.urbanPlanName, value.zoneName])
+
+  // ── 初始化時：若已有計畫+分區但無建蔽率（地號查詢帶入的情況）
+  useEffect(() => {
+    if (value.urbanPlanName && value.zoneName && value.coverageRatio === null) {
+      fetchRule(value.urbanPlanName, value.zoneName)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // 只在 mount 時執行一次
+
+  // ── 計畫選擇 handler ─────────────────────────────────────────
+  const handlePlanChange = (plan: string) => {
+    onChange({
+      ...value,
+      urbanPlanName:  plan,
+      zoneName:       '',
+      coverageRatio:  null,
+      floorAreaRatio: null,
+      zoningRemarks:  '',
+      planAreaId:     plan ? resolvePlanAreaIdFromName(plan) : '',
+      zoneType:       '',
+    })
+    setFetchedRule(null)
   }
+
+  // ── 分區選擇 handler ─────────────────────────────────────────
+  const handleZoneChange = (zone: string) => {
+    onChange({
+      ...value,
+      zoneName:       zone,
+      coverageRatio:  null,
+      floorAreaRatio: null,
+      zoningRemarks:  '',
+      zoneType:       zone ? toZoneType(zone) : '',
+    })
+    setFetchedRule(null)
+    if (value.urbanPlanName && zone) {
+      // useEffect 會接手，但直接 call 更即時
+      setTimeout(() => fetchRule(value.urbanPlanName, zone), 0)
+    }
+  }
+
+  // 顯示用的規則：優先使用 fetchedRule，其次使用 value 的既有資料
+  const displayRule = fetchedRule ?? (
+    (value.coverageRatio !== null || value.floorAreaRatio !== null)
+      ? { coverage_ratio: value.coverageRatio, floor_area_ratio: value.floorAreaRatio, max_far: null, bonus_multiplier: null, remarks: value.zoningRemarks, urban_plan_name: value.urbanPlanName, zone_name: value.zoneName }
+      : null
+  )
 
   const toggleSpecialZone = (id: string, checked: boolean) => {
     const next = checked
@@ -165,13 +440,8 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
     set('specialZoneIds', next)
   }
 
-  const selectedPlanArea = getPlanAreaById(value.planAreaId)
-  const selectedZoningRule = selectedPlanArea && value.zoneType
-    ? getZoningRule(selectedPlanArea, value.zoneType)
-    : undefined
-
   const isResidential = ['住宅', '集合住宅', '住商混合', '住辦混合'].includes(value.buildingUse)
-  const canSubmit = !loading && !!value.district && !!value.planAreaId && !!value.buildingUse
+  const canSubmit     = !loading && !!value.urbanPlanName && !!value.zoneName && !!value.buildingUse
 
   return (
     <div className="bg-white md:rounded-xl md:shadow-sm md:border md:border-gray-200 overflow-hidden">
@@ -179,62 +449,148 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
       <div className="bg-gradient-to-r from-blue-800 to-blue-600 px-5 py-4">
         <h2 className="text-white font-semibold text-base">基地與建築資料輸入</h2>
         <p className="text-blue-200 text-xs mt-0.5 hidden md:block">
-          判斷順序：行政區 → 都市計畫區 → 特殊管制區 → 使用分區 → 用途 → 規模
+          判斷順序：都市計畫區 → 使用分區 → 特殊管制區 → 用途 → 規模
         </p>
       </div>
 
       <div className="p-5 space-y-5">
 
-        {/* ── 區塊 1：位置資訊 ── */}
-        <CollapsibleSection title="位置資訊" subtitle="決定適用哪一套區域規則">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="行政區" required>
-              <Select
-                value={value.district}
-                onChange={handleDistrictChange}
-                options={TAICHUNG_DISTRICTS as unknown as string[]}
-                placeholder="請選擇行政區"
-              />
-            </Field>
+        {/* ── 區塊 1：基地法規資訊（主要） ── */}
+        <CollapsibleSection
+          title="基地法規資訊"
+          subtitle="依都市計畫名稱查詢建蔽率/容積率"
+        >
+          {/* DB 不可用提示 */}
+          {!dbAvailable && (
+            <div className="mb-3 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 text-xs text-orange-700">
+              <div className="font-semibold">⚠ 建蔽容積資料庫尚未匯入</div>
+              <div className="mt-0.5 leading-relaxed">請執行 <code className="bg-orange-100 px-1 rounded">node scripts/import-zoning-rules.mjs</code> 後重新部署</div>
+            </div>
+          )}
 
-            <Field
-              label="都市計畫區"
+          <div className="space-y-3">
+            {/* 都市計畫名稱 */}
+            <ComboBox
+              label="都市計畫名稱"
+              placeholder={plansLoading ? '載入中…' : '輸入關鍵字，例：大里、西屯'}
+              options={allPlans}
+              value={value.urbanPlanName}
+              onChange={handlePlanChange}
+              loading={plansLoading}
+              disabled={!dbAvailable}
+              hint={allPlans.length > 0 ? `共 ${allPlans.length} 個細部計畫，點擊搜尋` : undefined}
               required
-              hint={value.district ? `${availablePlanAreas.length} 個計畫區可選` : '請先選擇行政區'}
-            >
-              <Select
-                value={value.planAreaId}
-                onChange={handlePlanAreaChange}
-                options={availablePlanAreas.map((p) => ({ value: p.id, label: p.shortName }))}
-                placeholder="請選擇都市計畫區"
-              />
-            </Field>
+            />
+
+            {/* 使用分區 */}
+            <ComboBox
+              label="使用分區"
+              placeholder={
+                !value.urbanPlanName ? '請先選擇都市計畫名稱' :
+                zonesLoading         ? '載入分區中…' :
+                zonesForPlan.length === 0 ? '此計畫無分區資料' :
+                `共 ${zonesForPlan.length} 個分區，點擊搜尋`
+              }
+              options={zonesForPlan}
+              value={value.zoneName}
+              onChange={handleZoneChange}
+              loading={zonesLoading}
+              disabled={!value.urbanPlanName || zonesLoading || !dbAvailable}
+              required
+            />
           </div>
 
-          {selectedPlanArea && (
-            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 text-xs space-y-1">
-              <div className="font-semibold text-blue-800">{selectedPlanArea.name}</div>
-              <div className="text-blue-700 flex flex-wrap gap-x-4 gap-y-0.5">
-                <span>
-                  都審門檻：
-                  <strong>
-                    {selectedPlanArea.urbanDesign.isIndependent
-                      ? '全案需審（獨立機制）'
-                      : selectedPlanArea.urbanDesign.required === 0
-                      ? '全案需審'
-                      : `${selectedPlanArea.urbanDesign.required.toLocaleString()}㎡`}
-                  </strong>
-                </span>
-                <span>審議機關：<strong>{selectedPlanArea.urbanDesign.authority}</strong></span>
+          {/* 查詢中 spinner */}
+          {ruleQuerying && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-blue-600">
+              <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              查詢建蔽率/容積率…
+            </div>
+          )}
+
+          {/* 建蔽/容積顯示 */}
+          {!ruleQuerying && displayRule && value.zoneName && (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-xl overflow-hidden">
+              {/* 數值 */}
+              <div className="grid grid-cols-2 divide-x divide-green-200 border-b border-green-200">
+                <div className="px-4 py-3 text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {displayRule.coverage_ratio !== null ? `${displayRule.coverage_ratio}%` : '—'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">建蔽率上限</div>
+                </div>
+                <div className="px-4 py-3 text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {displayRule.floor_area_ratio !== null ? `${displayRule.floor_area_ratio}%` : '—'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">容積率</div>
+                  {displayRule.max_far !== null && (
+                    <div className="text-xs text-blue-400 mt-0.5">（上限 {displayRule.max_far}%）</div>
+                  )}
+                </div>
               </div>
-              {selectedPlanArea.specialRules.slice(0, 2).map((r, i) => (
-                <div key={i} className="text-blue-600">• {r}</div>
-              ))}
+              {/* 備註 */}
+              {displayRule.remarks && (
+                <div className="px-4 py-2.5 border-b border-green-200 text-xs text-gray-600 leading-relaxed">
+                  <span className="text-gray-400 font-medium">備註：</span>{displayRule.remarks.replace(/\n/g, ' / ')}
+                </div>
+              )}
+              {/* 資料來源 */}
+              <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-400">
+                <span>資料來源：臺中市都市計畫建蔽率容積率彙總表</span>
+                <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">112.4.14 一版</span>
+              </div>
+            </div>
+          )}
+
+          {/* 查無資料 */}
+          {!ruleQuerying && !displayRule && value.urbanPlanName && value.zoneName && (
+            <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 text-xs text-orange-700">
+              ⚠ 彙總表中查無「{value.zoneName}」對應建蔽率/容積率，請向主管機關確認
+            </div>
+          )}
+
+          {/* ⚠ 土管提醒 */}
+          {value.urbanPlanName && (
+            <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 flex items-start gap-2">
+              <span className="text-amber-500 shrink-0 mt-0.5">⚠</span>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                請確認本案是否另需檢討「<strong>{value.urbanPlanName}</strong>」之土地使用分區管制要點，並將相關土管條文納入法規檢核項目。
+              </p>
             </div>
           )}
         </CollapsibleSection>
 
-        {/* ── 區塊 2：特殊管制區 ── */}
+        {/* ── 區塊 2：輔助資訊（行政區） ── */}
+        <CollapsibleSection
+          title="輔助資訊"
+          subtitle="行政區（選填，由地號查詢帶入或手動填寫）"
+          defaultOpen={!!value.district}
+        >
+          <Field label="行政區" hint="不作為土管主判斷條件，可留空">
+            {value.district ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 border border-gray-200 bg-gray-50 rounded-lg px-3 py-2.5 text-sm text-gray-700">
+                  {value.district}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set('district', '')}
+                  className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 border border-gray-200 rounded-lg"
+                >清除</button>
+              </div>
+            ) : (
+              <Select
+                value={value.district}
+                onChange={v => set('district', v)}
+                options={TAICHUNG_DISTRICTS as unknown as string[]}
+                placeholder="選填，可不選"
+              />
+            )}
+          </Field>
+        </CollapsibleSection>
+
+        {/* ── 區塊 3：特殊管制區 ── */}
         <CollapsibleSection title="特殊管制區" subtitle="可多選，每項觸發額外法規" defaultOpen={false}>
           <div className="grid grid-cols-1 gap-2">
             {SPECIAL_ZONES.map((zone) => {
@@ -259,9 +615,7 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
                   <div className="min-w-0">
                     <div className={`text-sm font-medium ${isChecked ? 'text-blue-700' : 'text-gray-700'}`}>
                       {zone.name}
-                      {isAutoSelected && (
-                        <span className="ml-1 text-xs text-blue-500">（自動選取）</span>
-                      )}
+                      {isAutoSelected && <span className="ml-1 text-xs text-blue-500">（自動選取）</span>}
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5">{zone.description}</div>
                   </div>
@@ -271,49 +625,25 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
           </div>
         </CollapsibleSection>
 
-        {/* ── 區塊 3：土地資料 ── */}
+        {/* ── 區塊 4：土地資料 ── */}
         <CollapsibleSection title="土地資料">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="使用分區" required>
-              <Select
-                value={value.zoneType}
-                onChange={(v) => set('zoneType', v)}
-                options={
-                  selectedPlanArea && !selectedPlanArea.appliesGeneralZoning
-                    ? selectedPlanArea.zoningRules.map((r) => r.zoneType)
-                    : ZONE_TYPES as unknown as string[]
-                }
-                placeholder="請選擇使用分區"
-              />
-            </Field>
-            <Field label="基地面積（㎡）">
-              <NumberInput value={value.landArea} onChange={(v) => set('landArea', v)} placeholder="例：850" />
-            </Field>
-          </div>
-
-          {selectedZoningRule && (
-            <div className="mt-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-800 flex flex-wrap gap-x-4 gap-y-0.5">
-              <span className="font-semibold">{value.zoneType} 管制：</span>
-              <span>建蔽率 <strong>{selectedZoningRule.maxBuildingCoverage}%</strong></span>
-              <span>容積率 <strong>{selectedZoningRule.maxFar}%</strong></span>
-              {selectedZoningRule.maxHeight && (
-                <span>限高 <strong>{selectedZoningRule.maxHeight}m</strong></span>
-              )}
-              {selectedZoningRule.notes && (
-                <span className="w-full text-green-600">{selectedZoningRule.notes}</span>
-              )}
-            </div>
-          )}
+          <Field label="基地面積（㎡）">
+            <NumberInput value={value.landArea} onChange={(v) => set('landArea', v)} placeholder="例：850" />
+          </Field>
         </CollapsibleSection>
 
-        {/* ── 區塊 4：建築基本資料 ── */}
+        {/* ── 區塊 5：建築基本資料 ── */}
         <CollapsibleSection title="建築基本資料">
           <div className="grid grid-cols-2 gap-3">
             <Field label="建築用途" required>
               <Select
                 value={value.buildingUse}
                 onChange={(v) => set('buildingUse', v)}
-                options={BUILDING_USES as unknown as string[]}
+                options={[
+                  '住宅', '集合住宅', '住商混合', '住辦混合',
+                  '辦公', '商業', '旅館', '醫療', '學校',
+                  '政府機關', '倉儲', '工廠', '其他',
+                ] as string[]}
                 placeholder="請選擇用途"
               />
             </Field>
@@ -324,7 +654,7 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
                 onChange={(v) => set('buildingOwnership', v as 'public' | 'private')}
                 options={[
                   { value: 'private', label: '私有' },
-                  { value: 'public', label: '公有' },
+                  { value: 'public',  label: '公有' },
                 ]}
               />
             </Field>
@@ -364,7 +694,7 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
           )}
         </CollapsibleSection>
 
-        {/* ── 區塊 5：特殊條件 ── */}
+        {/* ── 區塊 6：特殊條件 ── */}
         <CollapsibleSection title="特殊條件" defaultOpen={false}>
           <div className="space-y-1">
             <Toggle
@@ -413,7 +743,9 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
         </button>
 
         {!canSubmit && !loading && (
-          <p className="text-xs text-center text-gray-400">請至少填寫「行政區」、「都市計畫區」與「建築用途」</p>
+          <p className="text-xs text-center text-gray-400">
+            請選擇「都市計畫名稱」、「使用分區」並填寫「建築用途」
+          </p>
         )}
       </div>
     </div>

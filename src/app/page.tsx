@@ -24,10 +24,17 @@ import ResizablePanels from '@/components/ResizablePanels'
 // ─── 常數 ─────────────────────────────────────────────────────
 
 const DEFAULT_INPUT: BuildingInput = {
-  district: '',
+  // 新版土管欄位
+  urbanPlanName:  '',
+  zoneName:       '',
+  coverageRatio:  null,
+  floorAreaRatio: null,
+  zoningRemarks:  '',
+  // 輔助欄位
+  district:   '',
   planAreaId: '',
+  zoneType:   '',
   specialZoneIds: [],
-  zoneType: '',
   landArea: 0,
   buildingUse: '',
   buildingOwnership: 'private',
@@ -80,6 +87,7 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
   const [report, setReport] = useState<CheckReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<CheckResult | null>(null)
+  const [debugOpen, setDebugOpen] = useState(false)
   // Mobile: which pane is visible ('form' | 'results')
   const [mobilePane, setMobilePane] = useState<'form' | 'results'>('form')
 
@@ -100,6 +108,48 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
 
   const requiredCount = report?.required.length ?? 0
 
+  // ── Debug Panel ──────────────────────────────────────────────────
+  const debugRows: { label: string; value: string; highlight?: boolean }[] = [
+    { label: 'urban_plan_name',  value: input.urbanPlanName  || '（未填）', highlight: !!input.urbanPlanName },
+    { label: 'zone_name',        value: input.zoneName       || '（未填）', highlight: !!input.zoneName },
+    { label: 'coverage_ratio',   value: input.coverageRatio  !== null ? `${input.coverageRatio}%`  : '（未查到）', highlight: input.coverageRatio !== null },
+    { label: 'floor_area_ratio', value: input.floorAreaRatio !== null ? `${input.floorAreaRatio}%` : '（未查到）', highlight: input.floorAreaRatio !== null },
+    { label: 'remarks',          value: input.zoningRemarks ? input.zoningRemarks.slice(0, 60) + (input.zoningRemarks.length > 60 ? '…' : '') : '（無）' },
+    { label: 'district',         value: input.district || '（未填）— 僅供地址參考' },
+    { label: 'planAreaId',       value: input.planAreaId || '（未設定）— 由 urbanPlanName 推導', highlight: false },
+    { label: 'zoneType',         value: input.zoneType   || '（未設定）— 由 zoneName 推導' },
+    { label: 'finalRuleKey',     value: input.urbanPlanName && input.zoneName ? `${input.urbanPlanName} ＋ ${input.zoneName}` : '⚠ 尚未選擇都市計畫區 + 使用分區', highlight: !!(input.urbanPlanName && input.zoneName) },
+  ]
+
+  const debugPanel = (
+    <div className="mx-4 mb-4">
+      <button
+        type="button"
+        onClick={() => setDebugOpen(o => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-900 text-gray-300 text-xs font-mono rounded-t-lg hover:bg-gray-800 transition-colors"
+      >
+        <span>🛠 Debug — 實際送入 ruleEngine 的欄位</span>
+        <span>{debugOpen ? '▲' : '▼'}</span>
+      </button>
+      {debugOpen && (
+        <div className="bg-gray-950 border-x border-b border-gray-700 rounded-b-lg px-3 py-2 space-y-1 font-mono">
+          {debugRows.map(r => (
+            <div key={r.label} className="flex items-start gap-2 text-xs leading-relaxed">
+              <span className="text-gray-500 shrink-0 w-40">{r.label}</span>
+              <span className={r.highlight === false ? 'text-gray-500' : r.highlight ? 'text-green-400' : 'text-yellow-300'}>
+                {r.value}
+              </span>
+            </div>
+          ))}
+          <div className="pt-1 mt-1 border-t border-gray-800 text-gray-600 text-xs leading-relaxed">
+            ⚠ district 僅供地址參考，不作為建蔽率/容積率/土管判斷依據。
+            判斷依據：urban_plan_name + zone_name → zoning_rules.db
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
   // ── Shared panel content (reused by both mobile and desktop layouts) ──
   const leftContent = (
     <>
@@ -118,6 +168,7 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
         )
       })()}
       <InputForm value={input} onChange={setInput} onSubmit={handleCheck} loading={loading} />
+      {debugPanel}
     </>
   )
 

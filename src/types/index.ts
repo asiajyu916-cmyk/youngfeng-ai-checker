@@ -59,10 +59,19 @@ export interface SpecialZone {
 // ─── 輸入資料 ─────────────────────────────────────────────────
 
 export interface BuildingInput {
-  district: string
-  planAreaId: string
+  // ── 新版土管欄位（主要，來自 zoning_rules.db） ─────────────────
+  urbanPlanName:  string        // 都市計畫名稱（DB 原值）
+  zoneName:       string        // 使用分區完整名稱（DB 原值）
+  coverageRatio:  number | null // 建蔽率 %（DB 原值）
+  floorAreaRatio: number | null // 容積率 %（DB 原值）
+  zoningRemarks:  string        // 土管備註（DB 原值）
+
+  // ── 輔助欄位（由地號查詢帶入 / 可選） ─────────────────────────
+  district:   string            // 行政區（輔助，不作為主判斷條件）
+  planAreaId: string            // 計畫區 ID（由 urbanPlanName 推導，供 Rule Engine 用）
+  zoneType:   string            // 使用分區代碼（由 zoneName 推導，供 Rule Engine 用）
+
   specialZoneIds: string[]
-  zoneType: string
   landArea: number
   buildingUse: string
   buildingOwnership: 'public' | 'private'
