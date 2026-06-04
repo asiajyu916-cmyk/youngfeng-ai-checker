@@ -351,13 +351,17 @@ function checkMOD07(input: BuildingInput): CheckResult {
 function checkMOD08(input: BuildingInput): CheckResult {
   const residentialUses = ['住宅', '集合住宅', '住商混合', '住辦混合']
   if (residentialUses.includes(input.buildingUse)) {
+    // 集合住宅案件類型：宜居建築為必辦；其他住宅用途為條件確認
+    const isApartmentCase = input.caseType === 'apartment'
     return {
       moduleCode: 'MOD_08',
       moduleName: '台中市宜居建築',
-      status: 'conditional',
-      triggerReason: `建築用途「${input.buildingUse}」含住宅，需確認是否達台中市宜居建築自治條例適用門檻`,
+      status: isApartmentCase ? 'required' : 'conditional',
+      triggerReason: isApartmentCase
+        ? `集合住宅案件，台中市宜居建築自治條例為必辦，需全面符合公設比、採光、戶外空間等規定`
+        : `建築用途「${input.buildingUse}」含住宅，需確認是否達台中市宜居建築自治條例適用門檻`,
       legalBasis: ['台中市宜居建築自治條例'],
-      priority: 2,
+      priority: isApartmentCase ? 1 : 2,
       notes: '台中市獨有地方法規，請查閱最新版本確認公設比、採光、戶外空間規定',
     }
   }

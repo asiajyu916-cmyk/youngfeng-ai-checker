@@ -59,6 +59,9 @@ export interface SpecialZone {
 // ─── 輸入資料 ─────────────────────────────────────────────────
 
 export interface BuildingInput {
+  // ── 案件類型（Step 0，驅動預載模組） ──────────────────────────
+  caseType: string              // 案件類型 ID（參見 src/data/caseTypes.ts）
+
   // ── 新版土管欄位（主要，來自 zoning_rules.db） ─────────────────
   urbanPlanName:  string        // 都市計畫名稱（DB 原值）
   zoneName:       string        // 使用分區完整名稱（DB 原值）

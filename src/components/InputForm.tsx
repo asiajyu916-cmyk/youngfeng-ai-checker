@@ -6,6 +6,7 @@ import {
   getApplicableSpecialZones,
   resolvePlanAreaIdFromName,
 } from '@/data/regionRules'
+import { CASE_TYPES, getCaseTypeById } from '@/data/caseTypes'
 
 // ─── 工具：zoneName → zoneType（供 Rule Engine 向後相容）────────────
 
@@ -439,8 +440,26 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
     set('specialZoneIds', next)
   }
 
+  // ── 案件類型 handler ─────────────────────────────────────────
+  const handleCaseTypeChange = (caseTypeId: string) => {
+    const ct = getCaseTypeById(caseTypeId)
+    onChange({
+      ...value,
+      caseType:    caseTypeId,
+      buildingUse: ct?.defaultBuildingUse ?? value.buildingUse,
+    })
+  }
+
+  const selectedCaseType = getCaseTypeById(value.caseType)
+  // 依案件類型篩選建築用途選項；未選則顯示全部
+  const buildingUseOptions: string[] = selectedCaseType?.buildingUseOptions ?? [
+    '住宅', '集合住宅', '住商混合', '住辦混合',
+    '辦公', '商業', '旅館', '醫療', '學校',
+    '政府機關', '倉儲', '工廠', '其他',
+  ]
+
   const isResidential = ['住宅', '集合住宅', '住商混合', '住辦混合'].includes(value.buildingUse)
-  const canSubmit     = !loading && !!value.urbanPlanName && !!value.zoneName && !!value.buildingUse
+  const canSubmit     = !loading && !!value.caseType && !!value.urbanPlanName && !!value.zoneName && !!value.buildingUse
 
   return (
     <div className="bg-white md:rounded-xl md:shadow-sm md:border md:border-gray-200 overflow-hidden">
@@ -448,11 +467,80 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
       <div className="bg-gradient-to-r from-blue-800 to-blue-600 px-5 py-4">
         <h2 className="text-white font-semibold text-base">基地與建築資料輸入</h2>
         <p className="text-blue-200 text-xs mt-0.5 hidden md:block">
-          判斷順序：都市計畫區 → 使用分區 → 特殊管制區 → 用途 → 規模
+          判斷順序：案件類型 → 都市計畫區 → 使用分區 → 特殊管制區 → 樓層 / 面積
         </p>
       </div>
 
       <div className="p-5 space-y-5">
+
+        {/* ── 區塊 0：案件類型 ── */}
+        <div>
+          <div className="flex items-baseline gap-1.5 mb-2">
+            <span className="text-sm font-medium text-gray-700">案件類型</span>
+            <span className="text-red-400 text-sm">*</span>
+            <span className="text-xs text-gray-400 ml-1">選定後自動載入常用法規模組</span>
+          </div>
+          {/* 類型卡片選擇 */}
+          <div className="grid grid-cols-3 gap-2">
+            {CASE_TYPES.map(ct => (
+              <button
+                key={ct.id}
+                type="button"
+                onClick={() => handleCaseTypeChange(ct.id)}
+                className={`flex flex-col items-center gap-1 px-1 py-2.5 rounded-xl border-2 text-center transition-all ${
+                  value.caseType === ct.id
+                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+              >
+                <span className="text-xl leading-none">{ct.icon}</span>
+                <span className={`text-[11px] font-semibold leading-tight ${
+                  value.caseType === ct.id ? 'text-blue-700' : 'text-gray-700'
+                }`}>
+                  {ct.label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* 預載模組預覽（選定後展開） */}
+          {selectedCaseType && (
+            <div className="mt-2.5 bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+              <div className="text-xs font-semibold text-blue-700">
+                {selectedCaseType.icon} {selectedCaseType.label} — 預載法規模組
+              </div>
+              {/* 必辦模組 */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-gray-500 shrink-0 w-8">必辦</span>
+                {selectedCaseType.baseModules.map(m => (
+                  <span
+                    key={m.code}
+                    title={`${m.code}：${m.reason}`}
+                    className="text-[10px] bg-blue-500 text-white font-medium px-2 py-0.5 rounded-full cursor-help"
+                  >
+                    {m.name}
+                  </span>
+                ))}
+              </div>
+              {/* 條件觸發模組 */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold text-gray-500 shrink-0 w-8">依條件</span>
+                {selectedCaseType.conditionalHints.map(m => (
+                  <span
+                    key={m.code}
+                    title={m.reason}
+                    className="text-[10px] bg-gray-100 text-gray-600 font-medium px-2 py-0.5 rounded-full cursor-help border border-gray-200"
+                  >
+                    {m.name}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-400 pt-0.5">
+                將依都市計畫區、使用分區、樓層、面積自動觸發「依條件」模組
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* ── 區塊 1：基地法規資訊（主要） ── */}
         <CollapsibleSection
@@ -638,11 +726,7 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
               <Select
                 value={value.buildingUse}
                 onChange={(v) => set('buildingUse', v)}
-                options={[
-                  '住宅', '集合住宅', '住商混合', '住辦混合',
-                  '辦公', '商業', '旅館', '醫療', '學校',
-                  '政府機關', '倉儲', '工廠', '其他',
-                ] as string[]}
+                options={buildingUseOptions as string[]}
                 placeholder="請選擇用途"
               />
             </Field>
@@ -743,7 +827,13 @@ export default function InputForm({ value, onChange, onSubmit, loading }: Props)
 
         {!canSubmit && !loading && (
           <p className="text-xs text-center text-gray-400">
-            請選擇「都市計畫名稱」、「使用分區」並填寫「建築用途」
+            {!value.caseType
+              ? '請先選擇「案件類型」'
+              : !value.urbanPlanName
+                ? '請選擇「都市計畫名稱」'
+                : !value.zoneName
+                  ? '請選擇「使用分區」'
+                  : '請填寫「建築用途」'}
           </p>
         )}
       </div>

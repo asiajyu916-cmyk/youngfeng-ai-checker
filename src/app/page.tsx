@@ -24,6 +24,8 @@ import ResizablePanels from '@/components/ResizablePanels'
 // ─── 常數 ─────────────────────────────────────────────────────
 
 const DEFAULT_INPUT: BuildingInput = {
+  // 案件類型
+  caseType: '',
   // 新版土管欄位
   urbanPlanName:  '',
   zoneName:       '',
@@ -116,6 +118,7 @@ function CheckView({ initialInput, checkSource, onMobileSelect }: CheckViewProps
   })()
 
   const debugRows: { label: string; value: string; highlight?: boolean }[] = [
+    { label: 'caseType',         value: input.caseType       || '（未選擇）', highlight: !!input.caseType },
     { label: 'urban_plan_name',  value: input.urbanPlanName  || '（未填）', highlight: !!input.urbanPlanName },
     { label: 'zone_name',        value: input.zoneName       || '（未填）', highlight: !!input.zoneName },
     { label: 'coverage_ratio',   value: input.coverageRatio  !== null ? `${input.coverageRatio}%`  : '（未查到）', highlight: input.coverageRatio !== null },
