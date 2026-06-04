@@ -88,7 +88,7 @@ function checkMOD02(input: BuildingInput): CheckResult {
   const isWaterNan = input.planAreaId === 'water_nan' || input.specialZoneIds.includes('water_nan')
   const hasUrbanDesignZone = input.specialZoneIds.includes('urban_design')
 
-  // 水湳園區改用 MOD_03
+  // ── 例外：水湳園區改用 MOD_03 ────────────────────────────────
   if (isWaterNan) {
     return {
       moduleCode: 'MOD_02',
@@ -100,59 +100,83 @@ function checkMOD02(input: BuildingInput): CheckResult {
     }
   }
 
-  // 判斷是否有都審判斷依據：
-  //   ① planArea 明確設定都審門檻（required > 0）→ 不需手動勾選，由計畫區設定自動觸發
-  //   ② 用戶手動勾選「都市設計管制區」（適用於 planArea 無明確門檻時）
+  // ── 共用常數 ─────────────────────────────────────────────────
   const hasPlanDesignRule = planArea !== undefined && planArea.urbanDesign.required > 0
-  if (!hasPlanDesignRule && !hasUrbanDesignZone) {
-    return {
-      moduleCode: 'MOD_02',
-      moduleName: '台中市都市設計審議',
-      status: 'not_required',
-      triggerReason: '所在都市計畫區無都審規定，且未勾選都市設計管制區',
-      legalBasis: ['台中市都市設計審議辦法'],
-      priority: 3,
-    }
-  }
+  const threshold       = planArea?.urbanDesign.required      ?? 3000
+  const reviewThreshold = planArea?.urbanDesign.manualReview  ?? 1000
+  const authority       = planArea?.urbanDesign.authority     ?? '台中市政府都市發展局'
+  const planAreaShortName = planArea?.shortName
+    ?? (input.urbanPlanName ? input.urbanPlanName.slice(0, 15) : '本計畫區')
+  const REMINDER = '請檢討本都市計畫區土地使用分區管制要點是否另有都市設計審議規定'
 
-  // 取得本計畫區的都審門檻（planArea 優先，手動勾選時使用預設值）
-  const threshold = planArea?.urbanDesign.required ?? 3000
-  const reviewThreshold = planArea?.urbanDesign.manualReview ?? 1000
-  const authority = planArea?.urbanDesign.authority ?? '台中市政府都市發展局'
-  const planAreaShortName = planArea?.shortName ?? '本計畫區'
-  const triggerSource = hasPlanDesignRule ? `計畫區設定（${planAreaShortName}）` : '手動勾選都市設計管制區'
-
-  if (input.totalFloorArea >= threshold) {
+  // ── 情境 A：計畫區有明確都審門檻 + 面積達門檻 → 自動觸發「需檢討」
+  if (hasPlanDesignRule && input.totalFloorArea >= threshold) {
     return {
       moduleCode: 'MOD_02',
       moduleName: '台中市都市設計審議',
       status: 'required',
-      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達門檻，需送審｜觸發來源：${triggerSource}`,
+      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達門檻，需送審`,
       legalBasis: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
       priority: 1,
       notes: `審議機關：${authority}`,
     }
   }
 
-  if (input.totalFloorArea >= reviewThreshold) {
+  // ── 情境 B：計畫區有都審門檻 + 面積在灰色區間 → 人工覆核
+  if (hasPlanDesignRule && input.totalFloorArea >= reviewThreshold) {
     return {
       moduleCode: 'MOD_02',
       moduleName: '台中市都市設計審議',
       status: 'manual_review',
-      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡（${reviewThreshold.toLocaleString()}～${(threshold - 1).toLocaleString()}㎡ 區間），需確認所屬管制分區細則｜觸發來源：${triggerSource}`,
+      triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡（${reviewThreshold.toLocaleString()}～${(threshold - 1).toLocaleString()}㎡ 灰色區間），需確認所屬管制分區細則`,
       legalBasis: ['台中市都市設計審議辦法'],
       priority: 1,
-      notes: `${planArea?.urbanDesign.note ?? '請向台中市都市發展局確認是否達當地分區門檻'}`,
+      notes: planArea?.urbanDesign.note ?? REMINDER,
     }
   }
 
+  // ── 情境 C：手動勾選都市設計管制區 + 面積達預設門檻 → 需檢討
+  if (hasUrbanDesignZone && input.totalFloorArea >= 3000) {
+    return {
+      moduleCode: 'MOD_02',
+      moduleName: '台中市都市設計審議',
+      status: 'required',
+      triggerReason: `手動勾選都市設計管制區，本案 ${input.totalFloorArea.toLocaleString()}㎡ 達預設門檻 3,000㎡，需送審`,
+      legalBasis: ['台中市都市設計審議辦法', '都市計畫法 §16-1'],
+      priority: 1,
+      notes: `審議機關：${authority}`,
+    }
+  }
+
+  // ── 情境 D：命中都市計畫區（或手動勾選）但面積未達門檻
+  //            → 土管條文尚未完整結構化，不得逕行判定「不需檢討」，標示「人工覆核」
+  if (input.urbanPlanName || hasUrbanDesignZone) {
+    const areaDesc = input.totalFloorArea > 0
+      ? `本案 ${input.totalFloorArea.toLocaleString()}㎡ 未達一般門檻（${hasPlanDesignRule ? threshold.toLocaleString() : '3,000'}㎡），`
+      : '面積資料尚未填入，'
+    const source = hasUrbanDesignZone && !input.urbanPlanName
+      ? '手動勾選都市設計管制區'
+      : `已命中「${planAreaShortName}」`
+    return {
+      moduleCode: 'MOD_02',
+      moduleName: '台中市都市設計審議',
+      status: 'manual_review',
+      triggerReason: `${source}，${areaDesc}惟各細部計畫或特定區土管條文尚未完整結構化，不得逕行判定不需檢討`,
+      legalBasis: ['台中市都市設計審議辦法'],
+      priority: 2,
+      notes: REMINDER,
+    }
+  }
+
+  // ── 情境 E：都市計畫名稱未選定，無法判定 → 人工覆核
   return {
     moduleCode: 'MOD_02',
     moduleName: '台中市都市設計審議',
-    status: 'not_required',
-    triggerReason: `【${planAreaShortName}】都審門檻 ${threshold.toLocaleString()}㎡，本案 ${input.totalFloorArea.toLocaleString()}㎡ 未達門檻`,
+    status: 'manual_review',
+    triggerReason: '都市計畫名稱未選定，無法判定是否需辦理都審',
     legalBasis: ['台中市都市設計審議辦法'],
     priority: 3,
+    notes: REMINDER,
   }
 }
 
