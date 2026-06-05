@@ -15,7 +15,7 @@ import type { BuildingInput, CheckResult } from '@/types'
 import { getPlanAreaById, resolvePlanAreaIdFromName } from '@/data/regionRules'
 
 // ─── 案件類型鍵值 ──────────────────────────────────────────────
-export type CaseTypeKey = 'apartment' | 'office' | 'townhouse' | 'factory' | 'other'
+export type CaseTypeKey = 'apartment' | 'office' | 'townhouse' | 'hotel' | 'medical'
 
 // ─── 模組型別 ──────────────────────────────────────────────────
 export interface LawModule {
@@ -31,7 +31,7 @@ export interface LawModule {
 
 // ─── 輔助 ─────────────────────────────────────────────────────
 
-const ALL: CaseTypeKey[] = ['apartment', 'office', 'townhouse', 'factory', 'other']
+const ALL: CaseTypeKey[] = ['apartment', 'office', 'townhouse', 'hotel', 'medical']
 
 /** 由 input 推導 PlanArea（planAreaId 優先，次用 urbanPlanName） */
 function resolvePlanArea(input: BuildingInput) {
@@ -279,7 +279,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_04', title: '高層建築物', category: '規模',
-    applicable_case_types: ['apartment', 'office', 'other'], priority: 1,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 1,
     source_law: ['建築技術規則設計施工編 §227～§281', '台中市高層建築物審查作業要點'],
     check(input) {
       if (input.floorsAbove >= 16 || input.heightM > 50) return {
@@ -308,7 +308,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_12', title: '無障礙設施', category: '建築規範',
-    applicable_case_types: ['apartment', 'office', 'townhouse', 'other'], priority: 1,
+    applicable_case_types: ['apartment', 'office', 'townhouse', 'hotel', 'medical'], priority: 1,
     source_law: ['建築技術規則設計施工編 §167～§167-14', '建築物無障礙設施設計規範'],
     check(input) {
       // 透天：依樓層判斷，不強制
@@ -360,7 +360,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_05', title: '危老重建', category: '特殊條件',
-    applicable_case_types: ['apartment', 'office', 'townhouse', 'other'], priority: 2,
+    applicable_case_types: ['apartment', 'office', 'townhouse', 'hotel', 'medical'], priority: 2,
     source_law: ['都市危險及老舊建築物加速重建條例 §3、§6', '台中市辦理都市危險及老舊建築物加速重建審查作業要點'],
     check(input) {
       if (input.isHazardRebuild) return {
@@ -378,7 +378,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_09', title: '容積移轉', category: '特殊條件',
-    applicable_case_types: ['apartment', 'office', 'other'], priority: 2,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 2,
     source_law: ['都市計畫容積移轉實施辦法 §6', '台中市辦理容積移轉審查作業要點'],
     check(input) {
       if (!input.isFarTransfer) return {
@@ -402,7 +402,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_10', title: '開放空間獎勵', category: '特殊條件',
-    applicable_case_types: ['apartment', 'office', 'other'], priority: 2,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 2,
     source_law: ['台中市建築物提供開放空間獎勵辦法'],
     check(input) {
       if (input.isOpenSpace) return {
@@ -420,7 +420,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_20', title: '都市更新', category: '特殊條件',
-    applicable_case_types: ['apartment', 'office', 'townhouse', 'other'], priority: 2,
+    applicable_case_types: ['apartment', 'office', 'townhouse', 'hotel', 'medical'], priority: 2,
     source_law: ['都市更新條例', '台中市都市更新自治條例'],
     note: '與危老重建通常擇一辦理；大型基地可評估申請',
     check(input) {
@@ -447,7 +447,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_07', title: '綠建築', category: '環境',
-    applicable_case_types: ['apartment', 'office', 'factory', 'other'], priority: 2,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 2,
     source_law: ['建築技術規則設計施工編 §298-1', '公有建築物應辦理綠建築之範圍及作業要點'],
     check(input) {
       const isWaterNan = input.planAreaId === 'water_nan' || input.specialZoneIds.includes('water_nan')
@@ -608,7 +608,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MOD_15', title: '防火避難', category: '消防',
-    applicable_case_types: ['apartment', 'office', 'factory', 'other'], priority: 1,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 1,
     source_law: ['建築技術規則設計施工編 §88～§108'],
     note: '防火區劃、避難層、緊急出口、排煙設備綜合檢討',
     check(input) {
@@ -741,7 +741,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MAN_FAR', title: '容積獎勵加總上限確認', category: '管理',
-    applicable_case_types: ['apartment', 'office', 'other'], priority: 1,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 1,
     source_law: ['都市計畫法 §50-1'],
     check(input) {
       const planArea = resolvePlanArea(input)
@@ -761,7 +761,7 @@ export const LAW_MODULES: LawModule[] = [
 
   {
     id: 'MAN_HIGHRISE_SCHEDULE', title: '高層建築物審查時程規劃', category: '管理',
-    applicable_case_types: ['apartment', 'office', 'other'], priority: 1,
+    applicable_case_types: ['apartment', 'office', 'hotel', 'medical'], priority: 1,
     source_law: ['台中市高層建築物審查作業要點'],
     check(input) {
       if (input.floorsAbove >= 16 || input.heightM > 50) return {

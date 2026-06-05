@@ -9,11 +9,28 @@ import {
   IconMap, IconStar,
 } from './icons'
 
+// ─── 外部連結 icon（內聯，不需額外 icon 元件）────────────────────────
+function IconExternal({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  )
+}
+
+// ─── NavItem 型別 ─────────────────────────────────────────────────────
+// id    → 內部頁面導覽（button）
+// href  → 外部連結（<a target="_blank">）
+// divider → 小分組標籤（非可點擊，僅供視覺分組）
+
 interface NavItem {
-  id: AppView
+  id?: AppView
+  href?: string
   label: string
-  icon: React.ReactNode
+  icon?: React.ReactNode
   badge?: string
+  divider?: boolean
 }
 
 interface NavSection {
@@ -30,29 +47,54 @@ interface Props {
   onLogout?: () => void
 }
 
+// ─── 導覽結構 ─────────────────────────────────────────────────────────
 const SECTIONS: NavSection[] = [
   {
     items: [
-      { id: 'dashboard',  label: '儀表板',       icon: <IconDashboard size={15} /> },
+      { id: 'dashboard', label: '儀表板', icon: <IconDashboard size={15} /> },
     ],
   },
   {
     title: '檢核作業',
     items: [
-      { id: 'check',      label: '法規檢核',      icon: <IconCheck size={15} />, badge: 'V2' },
-      { id: 'cases',      label: '案件管理',      icon: <IconFolder size={15} /> },
-      { id: 'history',    label: '歷史檢核紀錄',  icon: <IconHistory size={15} /> },
-      { id: 'land_query',    label: '地號查詢',      icon: <IconMap size={15} />, badge: 'NEW' },
-      { id: 'zoning_rules',  label: '建蔽容積查詢',  icon: <IconBook size={15} /> },
+      { id: 'check',        label: '法規檢核',    icon: <IconCheck size={15} />, badge: 'V2' },
+      { id: 'cases',        label: '案件管理',    icon: <IconFolder size={15} /> },
+      { id: 'history',      label: '歷史檢核紀錄', icon: <IconHistory size={15} /> },
+      { id: 'land_query',   label: '地號查詢',    icon: <IconMap size={15} />, badge: 'NEW' },
+      { id: 'zoning_rules', label: '建蔽容積查詢', icon: <IconBook size={15} /> },
+      // ── 外部基地查詢 ──
+      { divider: true, label: '外部基地查詢' },
+      {
+        href:  'https://lohas.taichung.gov.tw/webgis/',
+        label: '158 空間資訊網',
+        icon:  <IconMap size={14} />,
+      },
+      {
+        href:  'https://luz.nlma.gov.tw/web/',
+        label: 'LUZ 土地使用分區',
+        icon:  <IconLink size={14} />,
+      },
     ],
   },
   {
     title: '法規資料庫',
     items: [
-      { id: 'regulation_db',   label: '法規資料庫',  icon: <IconBook size={15} /> },
-      { id: 'article_search',  label: '條文檢索',    icon: <IconSearch size={15} /> },
-      { id: 'related_laws',    label: '相關法規',    icon: <IconLink size={15} /> },
-      { id: 'ai_rulings',      label: '函釋案例',    icon: <IconDoc size={15} /> },
+      { id: 'regulation_db',  label: '法規資料庫', icon: <IconBook size={15} /> },
+      { id: 'article_search', label: '條文檢索',   icon: <IconSearch size={15} /> },
+      { id: 'related_laws',   label: '相關法規',   icon: <IconLink size={15} /> },
+      { id: 'ai_rulings',     label: '函釋案例',   icon: <IconDoc size={15} /> },
+      // ── 外部法規查詢 ──
+      { divider: true, label: '外部法規查詢' },
+      {
+        href:  'https://www.ud.taichung.gov.tw/28928/29030/29058/2346379',
+        label: '台中市土管查詢',
+        icon:  <IconDoc size={14} />,
+      },
+      {
+        href:  'https://arch-people.com/laws/',
+        label: '建築人法規查詢',
+        icon:  <IconSearch size={14} />,
+      },
     ],
   },
   {
@@ -65,6 +107,7 @@ const SECTIONS: NavSection[] = [
   },
 ]
 
+// ─── Sidebar 元件 ─────────────────────────────────────────────────────
 export default function Sidebar({
   activeView,
   onNavigate,
@@ -76,7 +119,6 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    // hidden on mobile — bottom tab bar takes over navigation
     <aside className={`
       hidden md:flex flex-col
       ${collapsed ? 'w-14' : 'w-56'}
@@ -116,12 +158,50 @@ export default function Sidebar({
               </div>
             )}
             <div className="space-y-0.5 px-2">
-              {section.items.map((item) => {
+              {section.items.map((item, ii) => {
+
+                // ── 小分組標籤（divider）────────────────────────────
+                if (item.divider) {
+                  return collapsed ? null : (
+                    <div
+                      key={`divider-${si}-${ii}`}
+                      className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest px-2.5 pt-3 pb-0.5"
+                    >
+                      {item.label}
+                    </div>
+                  )
+                }
+
+                // ── 外部連結（<a>）──────────────────────────────────
+                if (item.href) {
+                  return (
+                    <a
+                      key={`ext-${si}-${ii}`}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={collapsed ? item.label : undefined}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-all text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                    >
+                      <span className="shrink-0 text-slate-600">{item.icon}</span>
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 truncate text-xs font-medium">{item.label}</span>
+                          <span className="shrink-0 text-slate-700">
+                            <IconExternal size={10} />
+                          </span>
+                        </>
+                      )}
+                    </a>
+                  )
+                }
+
+                // ── 內部導覽（button）──────────────────────────────
                 const isActive = activeView === item.id
                 return (
                   <button
                     key={item.id}
-                    onClick={() => onNavigate(item.id)}
+                    onClick={() => item.id && onNavigate(item.id)}
                     title={collapsed ? item.label : undefined}
                     className={`
                       w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all text-sm
