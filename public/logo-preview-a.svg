@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    方案 A — Technical Line Mark
+    YF 字母以精密線稿呈現，搭配製圖角標
+    參考：Bluebeam / AutoCAD / 建築製圖工具
+    ─ 白色等粗線條，工程製圖感
+    ─ 四角 L 形定位標記（architectural registration marks）
+    ─ 底部 scale bar（比例尺感）
+  -->
+
+  <!-- 背景 -->
+  <rect width="512" height="512" fill="#0A1F44"/>
+
+  <!-- 四角定位標記（L-shaped, 製圖 / 藍圖感）-->
+  <path d="M 44 88 L 44 44 L 88 44"   fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2.5"/>
+  <path d="M 468 88 L 468 44 L 424 44" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2.5"/>
+  <path d="M 44 424 L 44 468 L 88 468" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2.5"/>
+  <path d="M 468 424 L 468 468 L 424 468" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2.5"/>
+
+  <!-- Y 字母（線稿，等粗，square linecap）-->
+  <!-- 左臂：左上 → 中心點 -->
+  <line x1="65"  y1="128" x2="165" y2="272"
+    stroke="white" stroke-width="24" stroke-linecap="square"/>
+  <!-- 右臂：右上 → 中心點 -->
+  <line x1="265" y1="128" x2="165" y2="272"
+    stroke="white" stroke-width="24" stroke-linecap="square"/>
+  <!-- 主幹：中心點 → 底部 -->
+  <line x1="165" y1="272" x2="165" y2="384"
+    stroke="white" stroke-width="24" stroke-linecap="square"/>
+
+  <!-- F 字母 -->
+  <!-- 垂直主幹 -->
+  <line x1="297" y1="128" x2="297" y2="384"
+    stroke="white" stroke-width="24" stroke-linecap="square"/>
+  <!-- 頂部橫線 -->
+  <line x1="297" y1="128" x2="447" y2="128"
+    stroke="white" stroke-width="24" stroke-linecap="square"/>
+  <!-- 中部橫線（略短）-->
+  <line x1="297" y1="250" x2="422" y2="250"
+    stroke="white" stroke-width="24" stroke-linecap="square"/>
+
+  <!-- 底部比例尺（製圖感）-->
+  <line x1="65" y1="438" x2="447" y2="438"
+    stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+  <!-- 比例尺刻度 -->
+  <line x1="65"  y1="432" x2="65"  y2="444" stroke="rgba(255,255,255,0.30)" stroke-width="1.5"/>
+  <line x1="161" y1="432" x2="161" y2="444" stroke="rgba(255,255,255,0.30)" stroke-width="1.5"/>
+  <line x1="256" y1="432" x2="256" y2="444" stroke="rgba(255,255,255,0.30)" stroke-width="1.5"/>
+  <line x1="351" y1="432" x2="351" y2="444" stroke="rgba(255,255,255,0.30)" stroke-width="1.5"/>
+  <line x1="447" y1="432" x2="447" y2="444" stroke="rgba(255,255,255,0.30)" stroke-width="1.5"/>
+
+</svg>

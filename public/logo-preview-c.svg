@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    方案 C — Unified Spine Monogram
+    Y 與 F 共用一條垂直主幹，形成單一整合標誌
+    參考：Autodesk / Linear / Arc Browser
+    ─ Y 的兩條斜臂 + F 的兩條橫線 = 共用脊柱
+    ─ 最低元素數，最高識別度
+    ─ 縮至 16px 仍成形：脊柱 + 斜臂輪廓
+    ─ 純粹幾何，無任何裝飾
+  -->
+
+  <!-- 背景 -->
+  <rect width="512" height="512" fill="#0A1F44"/>
+
+  <!--
+    脊柱：x=215（全高共用）
+    Y 交匯點：y=256（垂直居中）
+    Y 左臂：(93, 100) → (215, 256)
+    Y 右臂：(337, 100) → (215, 256)   ← 此點落在 F 頂部橫線上
+    F 頂部橫線：(215, 100) → (419, 100)
+    F 中部橫線：(215, 256) → (399, 256)  ← 與 Y 交匯點重合
+    脊柱：(215, 100) → (215, 412)
+  -->
+
+  <!-- F 頂部橫線（在 Y 臂之前繪製，Y 右臂起點落其上）-->
+  <line x1="215" y1="100" x2="419" y2="100"
+    stroke="white" stroke-width="26" stroke-linecap="square"/>
+
+  <!-- F 中部橫線 = Y 交匯點延伸橫線 -->
+  <line x1="215" y1="256" x2="399" y2="256"
+    stroke="white" stroke-width="26" stroke-linecap="square"/>
+
+  <!-- Y 左臂 -->
+  <line x1="93"  y1="100" x2="215" y2="256"
+    stroke="white" stroke-width="26" stroke-linecap="square"/>
+
+  <!-- Y 右臂（起點在頂部橫線上）-->
+  <line x1="337" y1="100" x2="215" y2="256"
+    stroke="white" stroke-width="26" stroke-linecap="square"/>
+
+  <!-- 共用脊柱（Y 主幹 = F 垂直幹）-->
+  <line x1="215" y1="100" x2="215" y2="412"
+    stroke="white" stroke-width="26" stroke-linecap="square"/>
+
+</svg>

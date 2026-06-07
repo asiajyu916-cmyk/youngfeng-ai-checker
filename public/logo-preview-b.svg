@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    方案 B — Spatial Analysis Mark
+    YF 從空間分析圖層中浮現
+    參考：ArcGIS / ESRI / Autodesk Forma
+    ─ 同心圓弧（分析範圍意象）
+    ─ 微細點陣（地理 / 空間資料感）
+    ─ YF 以較細線稿呈現（精密分析工具）
+    ─ 垂直對稱線（GPS 十字準星感）
+  -->
+
+  <defs>
+    <!-- 點陣網格 -->
+    <pattern id="dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="16" cy="16" r="1.4" fill="rgba(255,255,255,0.11)"/>
+    </pattern>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="512" height="512" fill="#0A1F44"/>
+
+  <!-- 點陣空間背景 -->
+  <rect width="512" height="512" fill="url(#dots)"/>
+
+  <!-- 同心分析圓弧（由外向內漸強）-->
+  <circle cx="256" cy="256" r="222" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1.5"/>
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+
+  <!-- 十字準星（GPS 定位感）-->
+  <line x1="256" y1="34"  x2="256" y2="478" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <line x1="34"  y1="256" x2="478" y2="256" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+  <!-- Y 字母（較細線條，精密分析工具感）-->
+  <line x1="65"  y1="128" x2="165" y2="272"
+    stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <line x1="265" y1="128" x2="165" y2="272"
+    stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <line x1="165" y1="272" x2="165" y2="384"
+    stroke="white" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- F 字母 -->
+  <line x1="297" y1="128" x2="297" y2="384"
+    stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <line x1="297" y1="128" x2="447" y2="128"
+    stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <line x1="297" y1="250" x2="422" y2="250"
+    stroke="white" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- 中心定位點（GPS 感）-->
+  <circle cx="165" cy="272" r="5" fill="rgba(255,255,255,0.40)"/>
+  <circle cx="297" cy="128" r="4" fill="rgba(255,255,255,0.30)"/>
+
+</svg>
