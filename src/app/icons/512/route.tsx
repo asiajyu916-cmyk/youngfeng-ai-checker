@@ -6,71 +6,60 @@ export async function GET() {
   return new ImageResponse(<YFIcon size={512} />, { width: 512, height: 512 })
 }
 
+/**
+ * PWA Icon — 512×512
+ *
+ * 與 192 版本相同設計比例，確保放大後依然銳利。
+ * 括弧粗細 512 * 0.08 = 41px，字體 52% = 266px，可清楚辨識。
+ */
 function YFIcon({ size }: { size: number }) {
-  const s = size
-  const pad = s * 0.18
-  const w = s - pad * 2
+  const s    = size
+  const gold = '#D6A85A'
+  const bg   = '#0F2747'
+
+  const br  = Math.round(s * 0.12)
+  const arm = Math.round(s * 0.22)
+  const tck = Math.round(s * 0.08)
 
   return (
     <div
       style={{
         width: s,
         height: s,
-        background: '#0F2747',
+        background: bg,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: s * 0.22,
+        position: 'relative',
       }}
     >
-      {/* Gold horizontal rule top */}
-      <div style={{
-        position: 'absolute',
-        top: s * 0.13,
-        left: pad,
-        width: w,
-        height: s * 0.025,
-        background: 'linear-gradient(90deg, #D6A85A, #F0C97A, #D6A85A)',
-        borderRadius: 99,
-      }} />
+      {/* ── 左上角括弧 ── */}
+      <div style={{ position: 'absolute', top: br, left: br, width: arm, height: tck, background: gold }} />
+      <div style={{ position: 'absolute', top: br, left: br, width: tck, height: arm, background: gold }} />
 
-      {/* YF letterform */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: s * 0.018,
-        marginTop: s * 0.04,
-      }}>
-        {/* Y */}
+      {/* ── 右下角括弧 ── */}
+      <div style={{ position: 'absolute', bottom: br, right: br, width: arm, height: tck, background: gold }} />
+      <div style={{ position: 'absolute', bottom: br, right: br, width: tck, height: arm, background: gold }} />
+
+      {/* ── YF 文字 ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: s * 0.01 }}>
         <div style={{
-          color: '#D6A85A',
-          fontSize: s * 0.46,
+          color: gold,
+          fontSize: s * 0.52,
           fontWeight: '900',
           fontFamily: 'Georgia, serif',
           lineHeight: 1,
           letterSpacing: '-0.02em',
         }}>Y</div>
-        {/* F */}
         <div style={{
-          color: 'white',
-          fontSize: s * 0.46,
+          color: '#FFFFFF',
+          fontSize: s * 0.52,
           fontWeight: '900',
           fontFamily: 'Georgia, serif',
           lineHeight: 1,
           letterSpacing: '-0.02em',
         }}>F</div>
       </div>
-
-      {/* Gold horizontal rule bottom */}
-      <div style={{
-        position: 'absolute',
-        bottom: s * 0.13,
-        left: pad,
-        width: w,
-        height: s * 0.025,
-        background: 'linear-gradient(90deg, #D6A85A, #F0C97A, #D6A85A)',
-        borderRadius: 99,
-      }} />
     </div>
   )
 }

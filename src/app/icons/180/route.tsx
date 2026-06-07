@@ -6,66 +6,60 @@ export async function GET() {
   return new ImageResponse(<YFIcon size={180} />, { width: 180, height: 180 })
 }
 
+/**
+ * Apple Touch Icon — 180×180
+ *
+ * iOS 會自動套用圓角遮罩，圖片本身保持方形全出血。
+ * 與 192/512 版本相同設計，括弧粗細 180 * 0.08 = 14px。
+ */
 function YFIcon({ size }: { size: number }) {
-  const s = size
-  const pad = s * 0.18
-  const w = s - pad * 2
+  const s    = size
+  const gold = '#D6A85A'
+  const bg   = '#0F2747'
+
+  const br  = Math.round(s * 0.12)
+  const arm = Math.round(s * 0.22)
+  const tck = Math.round(s * 0.08)
 
   return (
     <div
       style={{
         width: s,
         height: s,
-        background: '#0F2747',
+        background: bg,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
       }}
     >
-      {/* Gold horizontal rule top */}
-      <div style={{
-        position: 'absolute',
-        top: s * 0.13,
-        left: pad,
-        width: w,
-        height: s * 0.028,
-        background: 'linear-gradient(90deg, #D6A85A, #F0C97A, #D6A85A)',
-        borderRadius: 99,
-      }} />
+      {/* ── 左上角括弧 ── */}
+      <div style={{ position: 'absolute', top: br, left: br, width: arm, height: tck, background: gold }} />
+      <div style={{ position: 'absolute', top: br, left: br, width: tck, height: arm, background: gold }} />
 
-      {/* YF letterform */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: s * 0.018,
-        marginTop: s * 0.04,
-      }}>
+      {/* ── 右下角括弧 ── */}
+      <div style={{ position: 'absolute', bottom: br, right: br, width: arm, height: tck, background: gold }} />
+      <div style={{ position: 'absolute', bottom: br, right: br, width: tck, height: arm, background: gold }} />
+
+      {/* ── YF 文字 ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: s * 0.01 }}>
         <div style={{
-          color: '#D6A85A',
-          fontSize: s * 0.46,
+          color: gold,
+          fontSize: s * 0.52,
           fontWeight: '900',
           fontFamily: 'Georgia, serif',
           lineHeight: 1,
+          letterSpacing: '-0.02em',
         }}>Y</div>
         <div style={{
-          color: 'white',
-          fontSize: s * 0.46,
+          color: '#FFFFFF',
+          fontSize: s * 0.52,
           fontWeight: '900',
           fontFamily: 'Georgia, serif',
           lineHeight: 1,
+          letterSpacing: '-0.02em',
         }}>F</div>
       </div>
-
-      {/* Gold horizontal rule bottom */}
-      <div style={{
-        position: 'absolute',
-        bottom: s * 0.13,
-        left: pad,
-        width: w,
-        height: s * 0.028,
-        background: 'linear-gradient(90deg, #D6A85A, #F0C97A, #D6A85A)',
-        borderRadius: 99,
-      }} />
     </div>
   )
 }
