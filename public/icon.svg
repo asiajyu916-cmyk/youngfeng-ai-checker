@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- 深藍漸層背景 -->
     <linearGradient id="bg" x1="10%" y1="0%" x2="90%" y2="100%">
-      <stop offset="0%"  stop-color="#0C1C47"/>
+      <stop offset="0%"  stop-color="#0B1A42"/>
       <stop offset="100%" stop-color="#040D18"/>
     </linearGradient>
   </defs>
@@ -10,40 +9,52 @@
   <!-- 背景 -->
   <rect width="512" height="512" fill="url(#bg)"/>
 
+  <!--
+    建築參數 (s=512, st=20):
+    tX=36, tY=97, tW=256, tH=317
+    bR=90, bCX=402, bCY=324
+    wPad=20, wW=45, wH=32
+  -->
+
   <!-- 地面線 -->
-  <rect x="51" y="425" width="409" height="8" rx="4" fill="white" opacity="0.25"/>
+  <rect x="36" y="414" width="456" height="10" rx="5"
+    fill="white" opacity="0.20"/>
 
-  <!-- 退縮層輪廓 (penthouse) -->
-  <!-- pX=96, pY=87, pW=125, pH=51, stroke=13 -->
-  <rect x="96" y="87" width="125" height="51"
-    fill="none" stroke="white" stroke-width="13"/>
+  <!-- 建築輪廓（平屋頂，無退縮層）-->
+  <rect x="36" y="97" width="256" height="317"
+    fill="none" stroke="white" stroke-width="20"/>
 
-  <!-- 主塔輪廓 -->
-  <!-- tX=51, tY=138, tW=215, tH=287, stroke=13 -->
-  <rect x="51" y="138" width="215" height="287"
-    fill="none" stroke="white" stroke-width="13"/>
+  <!-- 窗格 3 欄 × 4 列 -->
+  <!-- col0 x=76, col1 x=141, col2 x=206 -->
+  <!-- row0 y=137, row1 y=189, row2 y=241, row3 y=293 -->
+  <!-- wW=45, wH=32 -->
+  <rect x="76"  y="137" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="141" y="137" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="206" y="137" width="45" height="32" fill="white" opacity="0.22"/>
 
-  <!-- 窗格 2×3 -->
-  <!-- col0 x=83, col1 x=168; row0 y=170, row1 y=222, row2 y=274; wW=66, wH=33 -->
-  <rect x="83"  y="170" width="66" height="33" fill="white" opacity="0.20"/>
-  <rect x="168" y="170" width="66" height="33" fill="white" opacity="0.20"/>
-  <rect x="83"  y="222" width="66" height="33" fill="white" opacity="0.20"/>
-  <rect x="168" y="222" width="66" height="33" fill="white" opacity="0.20"/>
-  <rect x="83"  y="274" width="66" height="33" fill="white" opacity="0.20"/>
-  <rect x="168" y="274" width="66" height="33" fill="white" opacity="0.20"/>
+  <rect x="76"  y="189" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="141" y="189" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="206" y="189" width="45" height="32" fill="white" opacity="0.22"/>
 
-  <!-- 金色徽章邊框（深色分隔環）-->
-  <!-- bCX=373, bCY=338, bR=87, border=23 → outer=87, inner=64 -->
-  <circle cx="373" cy="338" r="87" fill="#040D18"/>
-  <!-- 金色填充 -->
-  <circle cx="373" cy="338" r="64" fill="#CFA045"/>
+  <rect x="76"  y="241" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="141" y="241" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="206" y="241" width="45" height="32" fill="white" opacity="0.22"/>
+
+  <rect x="76"  y="293" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="141" y="293" width="45" height="32" fill="white" opacity="0.22"/>
+  <rect x="206" y="293" width="45" height="32" fill="white" opacity="0.22"/>
+
+  <!-- 金色徽章：深色邊框環 + 金色內圓 -->
+  <!-- bCX=402, bCY=324, outer r=90, border=24, inner r=66 -->
+  <circle cx="402" cy="324" r="90" fill="#040D18"/>
+  <circle cx="402" cy="324" r="66" fill="#CFA045"/>
 
   <!-- 白色勾勾 -->
-  <text x="373" y="338"
+  <text x="402" y="324"
     text-anchor="middle"
     dominant-baseline="central"
-    font-family="'Arial Black', Arial, Helvetica, sans-serif"
+    font-family="'Arial Black', 'Arial Bold', Arial, sans-serif"
     font-weight="900"
-    font-size="70"
+    font-size="72"
     fill="white">✓</text>
 </svg>
