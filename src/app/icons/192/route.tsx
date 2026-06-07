@@ -1,69 +1,57 @@
 import { ImageResponse } from 'next/og'
-
 export const runtime = 'edge'
 
 export async function GET() {
-  return new ImageResponse(<YFIcon size={192} />, { width: 192, height: 192 })
+  return new ImageResponse(<IconC size={192} />, { width: 192, height: 192 })
 }
 
-/**
- * PWA Icon — 192×192
- *
- * 設計語言：
- *   - 深藍底（#0F2747）全出血，無 borderRadius，讓 Android/iOS 自行遮罩
- *   - 粗角括弧（厚度 8% icon size）替代舊細橫線
- *   - 大寫 YF：Y=金、F=白，字體 52% icon size
- *   - 無細線條，手機桌面辨識度優先
- */
-function YFIcon({ size }: { size: number }) {
-  const s    = size
-  const gold = '#D6A85A'
-  const bg   = '#0F2747'
-
-  // 角括弧幾何（全部以 s 比例，避免細線）
-  const br  = Math.round(s * 0.12)   // 括弧距邊緣
-  const arm = Math.round(s * 0.22)   // 括弧臂長
-  const tck = Math.round(s * 0.08)   // 括弧粗細（192px = 15px，夠粗）
+/** PWA Icon 192×192 — 方案 C YF 精品企業風 */
+function IconC({ size: s }: { size: number }) {
+  const GOLD = '#D6A85A'
+  const barH = s * 0.06
+  const barW = s * 0.48
+  const barX = (s - barW) / 2
+  const barY = s * 0.72
 
   return (
-    <div
-      style={{
-        width: s,
-        height: s,
-        background: bg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-      }}
-    >
-      {/* ── 左上角括弧 ── */}
-      <div style={{ position: 'absolute', top: br, left: br, width: arm, height: tck, background: gold }} />
-      <div style={{ position: 'absolute', top: br, left: br, width: tck, height: arm, background: gold }} />
-
-      {/* ── 右下角括弧 ── */}
-      <div style={{ position: 'absolute', bottom: br, right: br, width: arm, height: tck, background: gold }} />
-      <div style={{ position: 'absolute', bottom: br, right: br, width: tck, height: arm, background: gold }} />
-
-      {/* ── YF 文字 ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: s * 0.01 }}>
+    <div style={{
+      width: s, height: s,
+      background: 'linear-gradient(145deg, #1B3A8A 0%, #0E2259 55%, #070F2B 100%)',
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline',
+        gap: s * 0.02,
+        marginTop: -(s * 0.06),
+      }}>
         <div style={{
-          color: gold,
-          fontSize: s * 0.52,
+          color: '#FFFFFF',
+          fontSize: s * 0.58,
           fontWeight: '900',
-          fontFamily: 'Georgia, serif',
+          fontFamily: 'Georgia, "Times New Roman", serif',
           lineHeight: 1,
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.04em',
         }}>Y</div>
         <div style={{
           color: '#FFFFFF',
-          fontSize: s * 0.52,
+          fontSize: s * 0.58,
           fontWeight: '900',
-          fontFamily: 'Georgia, serif',
+          fontFamily: 'Georgia, "Times New Roman", serif',
           lineHeight: 1,
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.04em',
+          opacity: 0.88,
         }}>F</div>
       </div>
+      <div style={{
+        position: 'absolute',
+        top: barY, left: barX,
+        width: barW, height: barH,
+        background: `linear-gradient(90deg, transparent 0%, ${GOLD} 20%, ${GOLD} 80%, transparent 100%)`,
+        borderRadius: barH,
+      }} />
     </div>
   )
 }
