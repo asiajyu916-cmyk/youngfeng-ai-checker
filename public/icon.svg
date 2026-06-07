@@ -1,60 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="10%" y1="0%" x2="90%" y2="100%">
-      <stop offset="0%"  stop-color="#0B1A42"/>
-      <stop offset="100%" stop-color="#040D18"/>
+      <stop offset="0%"  stop-color="#09183A"/>
+      <stop offset="100%" stop-color="#050E1C"/>
     </linearGradient>
+    <!--
+      設計語言：Autodesk Forma / TestFit / Bluebeam
+      元素：
+        1. 微細點陣背景（技術圖紙感）
+        2. 白色建築量體輪廓（抽象，無窗格，無屋頂）
+        3. 金色法規基準線（量體 1/3 處）
+        4. 金色圓形徽章 ✓（法規檢核印記）
+      參數 s=512：st=15, tX=41, tY=90, tW=215, tH=333
+                  bR=90, bCX=379, bCY=333
+    -->
+    <pattern id="dots" x="0" y="0" width="45" height="45" patternUnits="userSpaceOnUse">
+      <circle cx="22.5" cy="22.5" r="1" fill="rgba(255,255,255,0.10)"/>
+    </pattern>
   </defs>
 
   <!-- 背景 -->
   <rect width="512" height="512" fill="url(#bg)"/>
 
-  <!--
-    建築參數 (s=512, st=20):
-    tX=36, tY=97, tW=256, tH=317
-    bR=90, bCX=402, bCY=324
-    wPad=20, wW=45, wH=32
-  -->
+  <!-- 微細點陣（技術圖紙感） -->
+  <rect width="512" height="512" fill="url(#dots)"/>
 
-  <!-- 地面線 -->
-  <rect x="36" y="414" width="456" height="10" rx="5"
-    fill="white" opacity="0.20"/>
+  <!-- 地基線 -->
+  <rect x="41" y="423" width="428" height="6" rx="3"
+    fill="white" opacity="0.18"/>
 
-  <!-- 建築輪廓（平屋頂，無退縮層）-->
-  <rect x="36" y="97" width="256" height="317"
-    fill="none" stroke="white" stroke-width="20"/>
+  <!-- 法規基準線（金色，建築量體上 1/3 處）-->
+  <!-- lineY = tY + tH*0.33 = 90 + 110 = 200; lineH = 7px -->
+  <rect x="56" y="200" width="185" height="7"
+    fill="#C8911C" opacity="0.92"/>
 
-  <!-- 窗格 3 欄 × 4 列 -->
-  <!-- col0 x=76, col1 x=141, col2 x=206 -->
-  <!-- row0 y=137, row1 y=189, row2 y=241, row3 y=293 -->
-  <!-- wW=45, wH=32 -->
-  <rect x="76"  y="137" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="141" y="137" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="206" y="137" width="45" height="32" fill="white" opacity="0.22"/>
+  <!-- 建築量體輪廓（白色，平屋頂，無窗格）-->
+  <rect x="41" y="90" width="215" height="333"
+    fill="none" stroke="white" stroke-width="15"/>
 
-  <rect x="76"  y="189" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="141" y="189" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="206" y="189" width="45" height="32" fill="white" opacity="0.22"/>
+  <!-- 金色徽章外環（深色分隔）-->
+  <circle cx="379" cy="333" r="90" fill="#050E1C"/>
 
-  <rect x="76"  y="241" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="141" y="241" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="206" y="241" width="45" height="32" fill="white" opacity="0.22"/>
-
-  <rect x="76"  y="293" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="141" y="293" width="45" height="32" fill="white" opacity="0.22"/>
-  <rect x="206" y="293" width="45" height="32" fill="white" opacity="0.22"/>
-
-  <!-- 金色徽章：深色邊框環 + 金色內圓 -->
-  <!-- bCX=402, bCY=324, outer r=90, border=24, inner r=66 -->
-  <circle cx="402" cy="324" r="90" fill="#040D18"/>
-  <circle cx="402" cy="324" r="66" fill="#CFA045"/>
+  <!-- 金色徽章內圓 -->
+  <!-- border = round(15*1.25) = 19 → inner r = 90-19 = 71 -->
+  <circle cx="379" cy="333" r="71" fill="#C8911C"/>
 
   <!-- 白色勾勾 -->
-  <text x="402" y="324"
+  <text x="379" y="333"
     text-anchor="middle"
     dominant-baseline="central"
     font-family="'Arial Black', 'Arial Bold', Arial, sans-serif"
     font-weight="900"
-    font-size="72"
+    font-size="75"
     fill="white">✓</text>
 </svg>

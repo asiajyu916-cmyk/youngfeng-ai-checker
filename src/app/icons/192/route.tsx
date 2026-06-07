@@ -6,77 +6,80 @@ export async function GET() {
 }
 
 /**
- * PWA 192×192 — 現代集合住宅 / 商辦輪廓 + 金色檢核徽章
- * 風格參考：Autodesk, Bluebeam, Procore, TestFit
- * - 平屋頂（無退縮層），避免透天厝感
- * - 較寬的建築比例（50% icon 寬）
- * - 加粗筆畫（32px 仍可辨識）
- * - 3 欄 × 4 列窗格（現代辦公大樓網格）
+ * PWA 192×192 — 建築量體線稿 + 法規基準線 + 金色檢核徽章
+ *
+ * 設計語言：Autodesk Forma / TestFit / Bluebeam
+ * ─ 白色輪廓量體：抽象建築形體，非具象房屋
+ * ─ 金色水平線：法規限制基準（高度管制意象）
+ * ─ 金色圓形徽章 ✓：法規檢核通過印記
+ * ─ 微細點陣背景：技術圖紙 / ArcGIS 空間感
+ * ─ 無窗格、無屋頂、無居住感
  */
 function Icon({ size: s }: { size: number }) {
-  const GOLD = '#CFA045'
+  const GOLD = '#C8911C'   // 深琥珀金：高端工具感，非首飾金
   const WHITE = '#FFFFFF'
-  const DARK = '#040D18'
+  const DARK = '#050E1C'
 
-  // 筆畫粗細：加粗確保縮小後仍可見
-  const st = Math.max(4, Math.round(s * 0.038))
+  const st = Math.max(3, Math.round(s * 0.030))   // 筆畫粗細
 
-  // ── 主塔（平屋頂，較寬）──
-  const tW = Math.round(s * 0.50)
-  const tH = Math.round(s * 0.62)
-  const tX = Math.round(s * 0.07)
-  const tY = Math.round(s * 0.19)
+  // ── 建築量體（高挑矩形，商辦 / 集合住宅比例）──
+  const tW = Math.round(s * 0.42)
+  const tH = Math.round(s * 0.65)
+  const tX = Math.round(s * 0.08)
+  const tY = Math.round(s * 0.175)
 
-  // ── 金色徽章位置 ──
-  const bR = Math.round(s * 0.175)
-  const bCX = tX + tW + Math.round(s * 0.04) + bR
+  // ── 法規基準線（量體上 1/3 處，暗示高度管制）──
+  const lineY  = tY + Math.round(tH * 0.33)
+  const lineH  = Math.max(2, Math.round(s * 0.014))
+  const lineX  = tX + st
+  const lineW  = tW - st * 2
+
+  // ── 金色徽章 ──
+  const bR  = Math.round(s * 0.175)
+  const bCX = tX + tW + Math.round(s * 0.045) + bR
   const bCY = tY + tH - bR
 
-  // ── 窗格 3 欄 × 4 列 ──
-  const wC = 3, wR = 4
-  const wPad = st
-  const innerW = tW - st * 2
-  const innerH = Math.round(tH * 0.78) - st
-  const wW = Math.round((innerW - wPad * (wC + 1)) / wC)
-  const wH = Math.round((innerH - wPad * (wR + 1)) / wR)
+  // 點陣網格間距
+  const dot = Math.round(s * 0.088)
 
   return (
     <div style={{
       width: s, height: s,
-      background: 'linear-gradient(145deg, #0B1A42 0%, #040D18 100%)',
+      background: 'linear-gradient(150deg, #09183A 0%, #050E1C 100%)',
       position: 'relative', display: 'flex',
     }}>
 
-      {/* 地面線（視覺錨點） */}
+      {/* 微細點陣背景（技術圖紙 / ArcGIS 空間感） */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1px)`,
+        backgroundSize: `${dot}px ${dot}px`,
+      }} />
+
+      {/* 地基線（量體與徽章共用基準） */}
       <div style={{
         position: 'absolute',
         left: tX, top: tY + tH,
         width: bCX + bR - tX,
-        height: Math.max(2, Math.round(st * 0.5)),
-        background: WHITE, opacity: 0.20, borderRadius: st,
+        height: Math.max(2, Math.round(st * 0.40)),
+        background: WHITE, opacity: 0.18, borderRadius: st,
       }} />
 
-      {/* 建築輪廓：平屋頂矩形，無退縮層 */}
+      {/* 法規基準線（金色水平線，建築量體 1/3 處） */}
+      <div style={{
+        position: 'absolute',
+        left: lineX, top: lineY,
+        width: lineW, height: lineH,
+        background: GOLD, opacity: 0.92,
+      }} />
+
+      {/* 建築量體輪廓（白色，平屋頂，無任何窗格） */}
       <div style={{
         position: 'absolute',
         left: tX, top: tY, width: tW, height: tH,
         border: `${st}px solid ${WHITE}`,
         boxSizing: 'border-box',
       }} />
-
-      {/* 窗格網格 */}
-      {Array.from({ length: wR * wC }).map((_, i) => {
-        const r = Math.floor(i / wC), c = i % wC
-        return (
-          <div key={i} style={{
-            position: 'absolute',
-            left: tX + st + wPad + c * (wW + wPad),
-            top: tY + st + wPad + r * (wH + wPad),
-            width: wW, height: wH,
-            background: WHITE, opacity: 0.22,
-          }} />
-        )
-      })}
 
       {/* 金色檢核徽章 */}
       <div style={{
@@ -85,7 +88,7 @@ function Icon({ size: s }: { size: number }) {
         width: bR * 2, height: bR * 2,
         borderRadius: bR,
         background: GOLD,
-        border: `${Math.round(st * 1.2)}px solid ${DARK}`,
+        border: `${Math.round(st * 1.25)}px solid ${DARK}`,
         boxSizing: 'border-box',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
