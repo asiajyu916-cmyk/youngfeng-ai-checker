@@ -6,88 +6,134 @@ export async function GET() {
 }
 
 /**
- * 方案 B — 簡約高樓 + AI
+ * 方案 B — 建築藍圖平面圖 + 金色檢核徽章
  *
- * 風格：Notion / Minimal SaaS
- * 色調：極深夜藍底，單一電藍高樓，頂部三個 AI 節點光點
- * 重點：科技感 × 建築感，乾淨俐落
+ * 設計語言：ArcGIS / Bluebeam / AutoCAD
+ * ─ 建築平面圖（top-down view）：外框 + 內部隔間牆線
+ * ─ 細線稿風格（薄 stroke），純建築技術圖感
+ * ─ 絕對不像住宅：平面圖 = 建築師工具的視覺語言
+ * ─ 金色圓形徽章：法規檢核通過印記
  */
 function IconB({ size: s }: { size: number }) {
-  const BG       = '#060C18'   // 幾乎全黑的深夜藍
-  const TOWER    = '#2563EB'   // 電藍高樓
-  const TOWER_HI = '#60A5FA'   // 高樓頂部略亮
-  const DOT      = '#93C5FD'   // AI 節點（明亮藍）
-  const GROUND   = '#1E3A5F'   // 地面
+  const BG   = '#0A1F44'
+  const W    = '#FFFFFF'
+  const GOLD = '#D4AF37'
+  const DARK = '#060E1E'
 
-  const tW = s * 0.32    // 高樓寬
-  const tH = s * 0.60    // 高樓高
-  const gH = s * 0.04    // 地面高
-  const tX = (s - tW) / 2  // 高樓水平居中
+  const stOut = Math.max(3, Math.round(s * 0.020))   // 外牆線
+  const stIn  = Math.max(2, Math.round(s * 0.010))   // 內牆線
 
-  // 高樓：下半 TOWER，頂部 20% 用略亮色分層感
-  const splitH = tH * 0.25   // 頂部分層高度
-  const bodyH  = tH - splitH
+  // ── 建築平面圖外框 ──
+  const fX = Math.round(s * 0.095)
+  const fY = Math.round(s * 0.110)
+  const fW = Math.round(s * 0.540)
+  const fH = Math.round(s * 0.660)
 
-  // AI 節點：三個圓，在高樓上方
-  const dotD   = s * 0.065   // 節點直徑
-  const dotGap = s * 0.08    // 節點間距
-  const dotY   = s * 0.09    // 節點 top 距離
-  const dotCenterX = s / 2
-  const dotPositions = [
-    dotCenterX - dotGap - dotD / 2,
-    dotCenterX - dotD / 2,
-    dotCenterX + dotGap - dotD / 2,
-  ]
+  // ── 內部隔間（模擬真實平面圖房間劃分）──
+  // 垂直主廊道：fX + 58% 位置
+  const vX = fX + Math.round(fW * 0.580)
+  // 水平分隔：fY + 52% 位置（左側大空間 vs 右上右下）
+  const hY = fY + Math.round(fH * 0.520)
 
-  // 節點連線（用細長矩形代替 — 寬=間距，高=2%）
-  // 避免「細線條」：連線改用較寬的矩形（4%厚）
-  const lineH  = s * 0.025
-  const lineY  = dotY + dotD / 2 - lineH / 2
+  // ── 金色徽章（右下，外框右側）──
+  const bR  = Math.round(s * 0.125)
+  const bCX = fX + fW + Math.round(s * 0.028) + bR
+  const bCY = fY + fH - bR
 
   return (
-    <div style={{ width: s, height: s, background: BG, position: 'relative', display: 'flex' }}>
+    <div style={{
+      width: s, height: s,
+      background: BG,
+      position: 'relative', display: 'flex',
+    }}>
 
-      {/* ── 地面 ── */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: s * 0.08, right: s * 0.08,
-        height: gH, background: GROUND,
-      }} />
-
-      {/* ── 高樓主體 ── */}
-      <div style={{
-        position: 'absolute', left: tX, bottom: gH,
-        width: tW, height: bodyH, background: TOWER,
-      }} />
-
-      {/* ── 高樓頂部（略亮層）── */}
-      <div style={{
-        position: 'absolute', left: tX, bottom: gH + bodyH,
-        width: tW, height: splitH, background: TOWER_HI,
-      }} />
-
-      {/* ── AI 節點連線 ── */}
+      {/* ── 平面圖外框 ── */}
       <div style={{
         position: 'absolute',
-        top: lineY,
-        left: dotPositions[0] + dotD / 2,
-        width: dotPositions[2] - dotPositions[0],
-        height: lineH,
-        background: DOT,
-        opacity: 0.35,
+        left: fX, top: fY, width: fW, height: fH,
+        border: `${stOut}px solid ${W}`,
+        boxSizing: 'border-box',
       }} />
 
-      {/* ── 三個 AI 節點 ── */}
-      {dotPositions.map((x, i) => (
+      {/* ── 垂直主廊道牆（全高，創建左大空間 + 右兩房）── */}
+      <div style={{
+        position: 'absolute',
+        left: vX, top: fY + stOut,
+        width: stIn, height: fH - stOut * 2,
+        background: W,
+      }} />
+
+      {/* ── 水平分隔牆（僅右半部，分右上 / 右下）── */}
+      <div style={{
+        position: 'absolute',
+        left: vX, top: hY,
+        width: fX + fW - vX - stOut, height: stIn,
+        background: W,
+      }} />
+
+      {/* ── 開口缺口（模擬門洞，左側牆）── */}
+      {/* 左大空間→廊道 門洞：在 hY 附近 */}
+      <div style={{
+        position: 'absolute',
+        left: vX, top: hY - Math.round(s * 0.055),
+        width: stIn, height: Math.round(s * 0.055),
+        background: BG,   // 用背景色蓋住牆線 = 製造缺口
+      }} />
+
+      {/* ── 量尺標記線（左側，建築圖說感）── */}
+      {[0.25, 0.50, 0.75].map((ratio, i) => (
         <div key={i} style={{
           position: 'absolute',
-          top: dotY,
-          left: x,
-          width: dotD,
-          height: dotD,
-          background: i === 1 ? '#FFFFFF' : DOT,   // 中間節點最亮
-          borderRadius: '50%',
+          left: fX - Math.round(s * 0.028),
+          top: fY + Math.round(fH * ratio),
+          width: Math.round(s * 0.022),
+          height: stIn,
+          background: W, opacity: 0.45,
         }} />
       ))}
+
+      {/* ── 量尺標記線（上側）── */}
+      {[0.30, 0.58].map((ratio, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          left: fX + Math.round(fW * ratio),
+          top: fY - Math.round(s * 0.028),
+          width: stIn,
+          height: Math.round(s * 0.022),
+          background: W, opacity: 0.45,
+        }} />
+      ))}
+
+      {/* ── 北方標記（N + 方向線）── */}
+      <div style={{
+        position: 'absolute',
+        left: Math.round(s * 0.075),
+        top: Math.round(s * 0.800),
+        color: W, opacity: 0.55,
+        fontSize: Math.round(s * 0.046),
+        fontWeight: '700',
+        fontFamily: 'Arial, sans-serif',
+        lineHeight: 1,
+      }}>N↑</div>
+
+      {/* 金色檢核徽章 */}
+      <div style={{
+        position: 'absolute',
+        left: bCX - bR, top: bCY - bR,
+        width: bR * 2, height: bR * 2,
+        borderRadius: bR,
+        background: GOLD,
+        border: `${Math.round(stOut * 1.6)}px solid ${DARK}`,
+        boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          color: W,
+          fontSize: Math.round(bR * 0.90),
+          fontWeight: '900',
+          lineHeight: 1,
+        }}>✓</div>
+      </div>
 
     </div>
   )

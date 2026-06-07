@@ -6,76 +6,88 @@ export async function GET() {
 }
 
 /**
- * 方案 A — 建築輪廓 + Check
+ * 方案 A — 主塔 + 基座量體 + 金色檢核徽章
  *
- * 風格：Enterprise SaaS / Linear dark
- * 色調：深石板藍底，三棟白色建築輪廓，綠色打勾徽章
- * 重點：建築感 × 檢核感，手機桌面一眼辨識
+ * 設計語言：Autodesk Forma / Procore
+ * ─ 高層主塔（tower）+ 寬基座（podium）＝ 現代商辦 / 集合住宅量體
+ * ─ 白色輪廓線稿，無窗格，無屋頂，無居住感
+ * ─ 金色圓形徽章：法規檢核通過印記
+ * ─ 禁止：YF 文字、房屋圖、卡通感
  */
 function IconA({ size: s }: { size: number }) {
-  const BG    = '#0F172A'   // slate-900 深藍黑
-  const WHITE = '#F1F5F9'   // 主建築色
-  const DIM   = '#2D3F5A'   // 側棟暗色
-  const GREEN = '#10B981'   // check 徽章綠
+  const BG   = '#0A1F44'
+  const W    = '#FFFFFF'
+  const GOLD = '#D4AF37'
+  const DARK = '#060E1E'
 
-  const pad  = s * 0.13    // 左右 padding
-  const bW   = s * 0.17    // 每棟建築寬度
-  const gH   = s * 0.05    // 地面 bar 高度
-  const gap  = (s - pad * 2 - bW * 3) / 2  // 棟間距
+  const st = Math.max(4, Math.round(s * 0.027))   // 線稿粗細
 
-  // 各棟高度
-  const h1 = s * 0.30   // 左棟
-  const h2 = s * 0.54   // 中棟（最高）
-  const h3 = s * 0.40   // 右棟
+  // ── 主塔（垂直長矩形，左偏中，商辦塔樓比例）──
+  const tW = Math.round(s * 0.240)   // 窄塔
+  const tH = Math.round(s * 0.600)   // 高（60%）
+  const tX = Math.round(s * 0.300)   // 水平置中左側
+  const tY = Math.round(s * 0.080)   // 頂部留空
 
-  // 建築 x 座標
-  const x1 = pad
-  const x2 = pad + bW + gap
-  const x3 = pad + bW * 2 + gap * 2
+  // ── 基座（寬矮矩形，接主塔底部）──
+  const pW = Math.round(s * 0.480)   // 比塔寬
+  const pH = Math.round(s * 0.160)   // 矮
+  const pX = Math.round(s * 0.150)   // 水平居中於塔
+  const pY = tY + tH                  // 緊接主塔底部
 
-  // Check 徽章
-  const bd  = s * 0.28    // 徽章直徑
-  const bmg = s * 0.07    // 徽章 margin
+  // ── 金色徽章（右側，底部對齊基座）──
+  const bR  = Math.round(s * 0.130)
+  const bCX = pX + pW + Math.round(s * 0.030) + bR
+  const bCY = pY + pH - bR
 
   return (
-    <div style={{ width: s, height: s, background: BG, position: 'relative', display: 'flex' }}>
+    <div style={{
+      width: s, height: s,
+      background: BG,
+      position: 'relative', display: 'flex',
+    }}>
 
-      {/* ── 地面 bar ── */}
+      {/* 地基線 */}
       <div style={{
-        position: 'absolute', bottom: 0, left: pad * 0.5, right: pad * 0.5,
-        height: gH, background: DIM,
+        position: 'absolute',
+        left: pX, top: pY + pH,
+        width: bCX + bR - pX,
+        height: Math.max(2, Math.round(st * 0.35)),
+        background: W, opacity: 0.18,
       }} />
 
-      {/* ── 左棟 ── */}
+      {/* 基座輪廓 */}
       <div style={{
-        position: 'absolute', left: x1, bottom: gH,
-        width: bW, height: h1, background: DIM,
+        position: 'absolute',
+        left: pX, top: pY, width: pW, height: pH,
+        border: `${st}px solid ${W}`,
+        boxSizing: 'border-box',
       }} />
 
-      {/* ── 中棟（主建築，白色）── */}
+      {/* 主塔輪廓（平屋頂，無細節）*/}
       <div style={{
-        position: 'absolute', left: x2, bottom: gH,
-        width: bW, height: h2, background: WHITE,
+        position: 'absolute',
+        left: tX, top: tY, width: tW, height: tH,
+        border: `${st}px solid ${W}`,
+        boxSizing: 'border-box',
       }} />
 
-      {/* ── 右棟 ── */}
+      {/* 金色檢核徽章 */}
       <div style={{
-        position: 'absolute', left: x3, bottom: gH,
-        width: bW, height: h3, background: DIM,
-      }} />
-
-      {/* ── Check 徽章（右上角）── */}
-      <div style={{
-        position: 'absolute', top: bmg, right: bmg,
-        width: bd, height: bd,
-        background: GREEN, borderRadius: '50%',
+        position: 'absolute',
+        left: bCX - bR, top: bCY - bR,
+        width: bR * 2, height: bR * 2,
+        borderRadius: bR,
+        background: GOLD,
+        border: `${Math.round(st * 1.4)}px solid ${DARK}`,
+        boxSizing: 'border-box',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <svg width={bd * 0.56} height={bd * 0.56} viewBox="0 0 24 24" fill="none">
-          <path d="M4 13l5 5L20 7"
-            stroke="white" strokeWidth="3.8"
-            strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <div style={{
+          color: W,
+          fontSize: Math.round(bR * 0.92),
+          fontWeight: '900',
+          lineHeight: 1,
+        }}>✓</div>
       </div>
 
     </div>
