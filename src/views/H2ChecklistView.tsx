@@ -446,25 +446,25 @@ const H2_CARDS: H2Card[] = [
 
 const PRE_SUBMIT_ITEMS: { id: string; label: string }[] = [
   { id: 'ps01', label: '宜居陽台檢討' },
-  { id: 'ps02', label: '宜居建築回饋辦法' },
-  { id: 'ps03', label: '緊急進口檢討' },
-  { id: 'ps04', label: '屋頂避難平台' },
-  { id: 'ps05', label: '開放空間獎勵' },
-  { id: 'ps06', label: '容積移轉' },
-  { id: 'ps07', label: '無障礙停車位' },
-  { id: 'ps08', label: '無障礙昇降設備' },
-  { id: 'ps09', label: '機車位數量' },
-  { id: 'ps10', label: '裝卸車位' },
-  { id: 'ps11', label: '消防救災空間' },
-  { id: 'ps12', label: '垃圾儲存空間' },
-  { id: 'ps13', label: '法定空地綠化' },
-  { id: 'ps14', label: '雨水貯留設施' },
-  { id: 'ps15', label: '水土保持' },
-  { id: 'ps16', label: '都市設計審議附帶決議' },
-  { id: 'ps17', label: '高層建築特殊規定' },
-  { id: 'ps18', label: '水湳經貿園區特殊規定' },
-  { id: 'ps19', label: '危老獎勵檢討' },
-  { id: 'ps20', label: '都更獎勵檢討' },
+  { id: 'ps02', label: '緊急進口檢討' },
+  { id: 'ps03', label: '屋頂避難平台' },
+  { id: 'ps04', label: '開放空間獎勵' },
+  { id: 'ps05', label: '容積移轉' },
+  { id: 'ps06', label: '無障礙停車位' },
+  { id: 'ps07', label: '無障礙昇降設備' },
+  { id: 'ps08', label: '機車位數量' },
+  { id: 'ps09', label: '開挖率檢討' },
+  { id: 'ps10', label: '消防救災空間' },
+  { id: 'ps11', label: '垃圾儲存空間' },
+  { id: 'ps12', label: '法定空地綠化' },
+  { id: 'ps13', label: '雨水貯留設施' },
+  { id: 'ps14', label: '水土保持' },
+  { id: 'ps15', label: '都市設計審議附帶決議' },
+  { id: 'ps16', label: '高層建築特殊規定' },
+  { id: 'ps17', label: '水湳經貿園區特殊規定' },
+  { id: 'ps18', label: '危老獎勵檢討' },
+  { id: 'ps19', label: '都更獎勵檢討' },
+  { id: 'ps20', label: '建築節能檢討' },
 ]
 
 // ─── 搜尋邏輯 ──────────────────────────────────────────────────────────────
@@ -765,10 +765,10 @@ export default function H2ChecklistView({ onNavigate }: Props) {
                   </div>
                   <div className="text-left">
                     <div className="text-lg font-bold text-white leading-snug tracking-wide">
-                      送審前必要法規檢核項目
+                      ★ 建照常見必要檢討項目
                     </div>
                     <div className="text-sm mt-0.5 leading-snug" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                      建照申請前逐項確認｜共 {PRE_SUBMIT_ITEMS.length} 項
+                      共 {PRE_SUBMIT_ITEMS.length} 項｜請逐項確認
                     </div>
                   </div>
                 </div>
