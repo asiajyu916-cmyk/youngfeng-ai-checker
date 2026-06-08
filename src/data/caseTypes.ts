@@ -109,60 +109,6 @@ export const CASE_TYPES: CaseTypeConfig[] = [
     ],
   },
 
-  // ── 4. 旅館 ────────────────────────────────────────────────
-  {
-    id: 'hotel',
-    label: '旅館',
-    icon: '🏨',
-    description: '旅館、民宿、服務式公寓',
-    defaultBuildingUse: '旅館',
-    buildingUseOptions: ['旅館', '住商混合'],
-    baseModules: [
-      { code: 'MOD_01', name: '土管',     reason: '每案必辦' },
-      { code: 'MOD_06', name: '建技規',   reason: '每案必辦' },
-      { code: 'MOD_11', name: '停車空間', reason: '每案必辦' },
-      { code: 'MOD_12', name: '無障礙',   reason: '公眾使用建築物' },
-      { code: 'MOD_13', name: '消防',     reason: '旅館類必辦（住宿業消防安全標準）' },
-      { code: 'MOD_15', name: '防火避難', reason: '公眾使用場所必辦' },
-    ],
-    conditionalHints: [
-      { code: 'MOD_02', name: '都審',       reason: '面積達都審門檻' },
-      { code: 'MOD_04', name: '高層',       reason: '≥16F 或 >50m' },
-      { code: 'MOD_07', name: '綠建築',     reason: '公有≥500㎡ / 一般≥1,000㎡' },
-      { code: 'MOD_09', name: '容移',       reason: '申請容積移轉' },
-      { code: 'MOD_10', name: '開放空間',   reason: '申請獎勵' },
-      { code: 'MOD_16', name: '雨水貯留',   reason: '基地≥500㎡ 或 樓地板≥3,000㎡' },
-      { code: 'MOD_17', name: '景觀綠化',   reason: '基地≥500㎡' },
-      { code: 'MOD_20', name: '都市更新',   reason: '基地≥1,000㎡（可評估）' },
-    ],
-  },
-
-  // ── 5. 醫療機構 ────────────────────────────────────────────
-  {
-    id: 'medical',
-    label: '醫療機構',
-    icon: '🏥',
-    description: '醫院、診所、長照機構',
-    defaultBuildingUse: '醫療',
-    buildingUseOptions: ['醫療', '辦公'],
-    baseModules: [
-      { code: 'MOD_01', name: '土管',     reason: '每案必辦' },
-      { code: 'MOD_06', name: '建技規',   reason: '每案必辦' },
-      { code: 'MOD_11', name: '停車空間', reason: '每案必辦' },
-      { code: 'MOD_12', name: '無障礙',   reason: '公眾使用建築物（醫療設施加強規定）' },
-      { code: 'MOD_13', name: '消防',     reason: '醫療機構必辦（高危險族群避難）' },
-      { code: 'MOD_15', name: '防火避難', reason: '醫療場所必辦' },
-    ],
-    conditionalHints: [
-      { code: 'MOD_02', name: '都審',       reason: '面積達都審門檻' },
-      { code: 'MOD_04', name: '高層',       reason: '≥16F 或 >50m' },
-      { code: 'MOD_07', name: '綠建築',     reason: '公有≥500㎡ / 一般≥1,000㎡' },
-      { code: 'MOD_09', name: '容移',       reason: '申請容積移轉' },
-      { code: 'MOD_16', name: '雨水貯留',   reason: '基地≥500㎡ 或 樓地板≥3,000㎡' },
-      { code: 'MOD_17', name: '景觀綠化',   reason: '基地≥500㎡' },
-      { code: 'MOD_20', name: '都市更新',   reason: '基地≥1,000㎡（可評估）' },
-    ],
-  },
 ]
 
 export function getCaseTypeById(id: string): CaseTypeConfig | undefined {
