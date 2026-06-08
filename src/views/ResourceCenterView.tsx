@@ -308,6 +308,65 @@ function CategorySection({ cat }: { cat: Category }) {
   )
 }
 
+// ─── 內部導覽區塊 ──────────────────────────────────────────────────────────
+
+interface InternalItem {
+  emoji: string
+  label: string
+  desc: string
+  view?: AppView
+  coming?: boolean
+}
+
+function InternalSection({
+  title, emoji, items, onNavigate,
+}: {
+  title: string
+  emoji: string
+  items: InternalItem[]
+  onNavigate: (view: AppView) => void
+}) {
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base leading-none">{emoji}</span>
+        <h2 className="text-sm font-bold text-gray-700">{title}</h2>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
+        {items.map(item => (
+          <button
+            key={item.label}
+            onClick={() => !item.coming && item.view && onNavigate(item.view)}
+            disabled={item.coming}
+            className={`text-left bg-white rounded-xl border p-3.5 flex flex-col gap-1.5 transition-all
+              ${item.coming
+                ? 'border-gray-100 opacity-60 cursor-not-allowed'
+                : 'border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 hover:-translate-y-0.5 active:translate-y-0'}`}
+          >
+            <span className="text-xl leading-none">{item.emoji}</span>
+            <div>
+              <div className="text-xs font-bold text-gray-800 leading-tight">{item.label}</div>
+              <div className="text-[10px] text-gray-400 mt-0.5 leading-relaxed">{item.desc}</div>
+            </div>
+            {item.coming ? (
+              <span className="self-start text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded font-semibold">
+                即將推出
+              </span>
+            ) : (
+              <span className="self-start text-[9px] bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded font-semibold flex items-center gap-0.5">
+                進入
+                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 // ─── 主元件 ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -409,6 +468,51 @@ export default function ResourceCenterView({ onNavigate }: Props) {
                 </svg>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── 內部導覽區塊（非搜尋時顯示）────────────────── */}
+        {!isSearching && onNavigate && (
+          <div className="mb-8 space-y-5">
+
+            {/* 法規工具 */}
+            <InternalSection
+              title="法規工具"
+              emoji="⚖️"
+              items={[
+                { emoji: '📋', label: 'H2 法規自主檢核表', desc: '15 大主題自主檢討卡片', view: 'h2_checklist' as AppView },
+                { emoji: '📖', label: '法規資料庫', desc: '台中市法規・危老・無障礙', view: 'regulation_db' as AppView },
+                { emoji: '🔍', label: '條文搜尋', desc: '全文檢索法規條文', view: 'article_search' as AppView },
+                { emoji: '🔗', label: '函釋案例', desc: '主管機關解釋函彙整', view: 'ai_rulings' as AppView },
+              ]}
+              onNavigate={onNavigate}
+            />
+
+            {/* 台中特殊法規 */}
+            <InternalSection
+              title="台中特殊法規"
+              emoji="🏙️"
+              items={[
+                { emoji: '🏢', label: '宜居建築', desc: '容積獎勵・設施設置辦法', view: 'regulation_db' as AppView },
+                { emoji: '🌳', label: '開放空間', desc: '開放空間設計規定', coming: true },
+                { emoji: '🔄', label: '容積移轉', desc: '容積移轉申請規範', coming: true },
+                { emoji: '🔨', label: '危老重建', desc: '危老條例・容積獎勵', view: 'regulation_db' as AppView },
+                { emoji: '🏗️', label: '都市更新', desc: '都更實施條例', coming: true },
+              ]}
+              onNavigate={onNavigate}
+            />
+
+            {/* 案例與資源 */}
+            <InternalSection
+              title="案例與資源"
+              emoji="📂"
+              items={[
+                { emoji: '📁', label: '案例庫', desc: '歷史檢核案例查閱', coming: true },
+                { emoji: '⚠️', label: '常見錯誤案例', desc: '法規審查常見問題', coming: true },
+                { emoji: '🏷️', label: '法規更新紀錄', desc: '條文修正版本追蹤', view: 'version_mgmt' as AppView },
+              ]}
+              onNavigate={onNavigate}
+            />
           </div>
         )}
 

@@ -12,6 +12,7 @@ import AIAssistant from '@/components/AIAssistant'
 import BottomTabBar from '@/components/BottomTabBar'
 import BottomSheet from '@/components/BottomSheet'
 import PWAManager from '@/components/PWAManager'
+import MobileDrawer from '@/components/MobileDrawer'
 import LoginPage from '@/components/LoginPage'
 import DashboardView from '@/views/DashboardView'
 import LandQueryView from '@/views/LandQueryView'
@@ -363,6 +364,7 @@ export default function Home() {
   // Mobile: BottomSheet state for DetailPanel
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetResult, setSheetResult] = useState<CheckResult | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const handleApplyToCheck = useCallback((partial: Partial<BuildingInput>, source: NonNullable<CheckSource> = 'land_query') => {
     setPendingInput(partial)
@@ -463,6 +465,7 @@ export default function Home() {
           userInitials={session.initials}
           userDepartment={session.department}
           onLogout={logout}
+          onMenuOpen={() => setDrawerOpen(true)}
         />
 
         {/* Main content area
@@ -475,6 +478,14 @@ export default function Home() {
 
       {/* Mobile bottom tab bar */}
       <BottomTabBar activeView={view} onNavigate={handleNavigate} />
+
+      {/* Mobile hamburger drawer */}
+      <MobileDrawer
+        isOpen={drawerOpen}
+        activeView={view}
+        onClose={() => setDrawerOpen(false)}
+        onNavigate={handleNavigate}
+      />
 
       {/* PWA: service worker registration + install prompt */}
       <PWAManager />
