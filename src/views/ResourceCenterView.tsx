@@ -440,24 +440,26 @@ export default function ResourceCenterView({ onNavigate }: Props) {
           )}
         </div>
 
-        {/* ── 內建工具：H2 法規自主檢討 ───────────────── */}
+        {/* ── 內建工具：快速入口卡片 ──────────────────── */}
         {!isSearching && onNavigate && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm">🔧</span>
               <h2 className="text-sm font-bold text-gray-700">內建工具</h2>
             </div>
+
+            {/* H2 主要 Banner */}
             <div
               onClick={() => onNavigate('h2_checklist')}
-              className="cursor-pointer bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl p-5 flex items-center gap-5 hover:from-blue-800 hover:to-blue-950 transition-all shadow-md group"
+              className="cursor-pointer bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl p-5 flex items-center gap-5 hover:from-blue-800 hover:to-blue-950 transition-all shadow-md group mb-3"
             >
               <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">
                 📋
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-white font-bold text-base leading-tight">H2 法規自主檢討項目表</div>
-                <div className="text-blue-200 text-xs mt-1">H2 階段常用法規自主檢核項目</div>
-                <div className="text-blue-300 text-xs mt-1">共 15 項主題｜可搜尋・可展開・可收藏・可列印</div>
+                <div className="text-blue-200 text-xs mt-1">消防避難・防火構造・採光日照・居住性能・停車・無障礙・高度量體・台中特殊法規</div>
+                <div className="text-blue-300 text-xs mt-1">8 大分類 46 項｜TOP20 警示・進度追蹤・收藏・列印</div>
               </div>
               <div className="shrink-0 flex items-center gap-2">
                 <span className="text-xs bg-white/20 text-white px-2.5 py-1 rounded-full font-semibold">
@@ -467,6 +469,28 @@ export default function ResourceCenterView({ onNavigate }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
+            </div>
+
+            {/* 次要快速入口卡片 */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {[
+                { emoji: '📖', label: '法規資料庫', desc: '台中市法規・危老', view: 'regulation_db' as AppView },
+                { emoji: '🔍', label: '條文搜尋', desc: '全文檢索法規條文', view: 'article_search' as AppView },
+                { emoji: '📂', label: '歷史檢核紀錄', desc: '案件歷史查閱', view: 'history' as AppView },
+                { emoji: '🤖', label: 'AI 法規助理', desc: '智慧法規問答', view: 'ai_assistant' as AppView },
+              ].map(item => (
+                <button
+                  key={item.view}
+                  onClick={() => onNavigate(item.view)}
+                  className="text-left bg-white rounded-xl border border-gray-200 px-3.5 py-3 flex items-center gap-2.5 hover:border-blue-200 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                >
+                  <span className="text-lg leading-none shrink-0">{item.emoji}</span>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-gray-800 truncate">{item.label}</div>
+                    <div className="text-[10px] text-gray-400 truncate">{item.desc}</div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -480,10 +504,12 @@ export default function ResourceCenterView({ onNavigate }: Props) {
               title="法規工具"
               emoji="⚖️"
               items={[
-                { emoji: '📋', label: 'H2 法規自主檢核表', desc: '15 大主題自主檢討卡片', view: 'h2_checklist' as AppView },
-                { emoji: '📖', label: '法規資料庫', desc: '台中市法規・危老・無障礙', view: 'regulation_db' as AppView },
+                { emoji: '📋', label: 'H2 法規自主檢討表', desc: '8分類 46項・TOP20警示', view: 'h2_checklist' as AppView },
+                { emoji: '📖', label: '建築技術規則速查', desc: '台中市法規・危老・無障礙', view: 'regulation_db' as AppView },
                 { emoji: '🔍', label: '條文搜尋', desc: '全文檢索法規條文', view: 'article_search' as AppView },
+                { emoji: '📚', label: '法規資料庫', desc: '彙整台中市常用法規', view: 'regulation_db' as AppView },
                 { emoji: '🔗', label: '函釋案例', desc: '主管機關解釋函彙整', view: 'ai_rulings' as AppView },
+                { emoji: '🏷️', label: '法規更新紀錄', desc: '條文修正版本追蹤', view: 'version_mgmt' as AppView },
               ]}
               onNavigate={onNavigate}
             />
@@ -493,11 +519,12 @@ export default function ResourceCenterView({ onNavigate }: Props) {
               title="台中特殊法規"
               emoji="🏙️"
               items={[
-                { emoji: '🏢', label: '宜居建築', desc: '容積獎勵・設施設置辦法', view: 'regulation_db' as AppView },
-                { emoji: '🌳', label: '開放空間', desc: '開放空間設計規定', coming: true },
+                { emoji: '🏢', label: '宜居建築', desc: '宜居陽台・平台・回饋金', view: 'regulation_db' as AppView },
+                { emoji: '🌳', label: '開放空間', desc: '透空率・告示牌・維管', coming: true },
                 { emoji: '🔄', label: '容積移轉', desc: '容積移轉申請規範', coming: true },
-                { emoji: '🔨', label: '危老重建', desc: '危老條例・容積獎勵', view: 'regulation_db' as AppView },
-                { emoji: '🏗️', label: '都市更新', desc: '都更實施條例', coming: true },
+                { emoji: '🔨', label: '危老獎勵', desc: '危老條例・時程獎勵', view: 'regulation_db' as AppView },
+                { emoji: '🏗️', label: '都市更新', desc: '都更條例・獎勵', coming: true },
+                { emoji: '🏛️', label: '都市審議', desc: '屋脊・外牆裝飾物', view: 'regulation_db' as AppView },
               ]}
               onNavigate={onNavigate}
             />
@@ -509,7 +536,7 @@ export default function ResourceCenterView({ onNavigate }: Props) {
               items={[
                 { emoji: '📁', label: '案例庫', desc: '歷史檢核案例查閱', coming: true },
                 { emoji: '⚠️', label: '常見錯誤案例', desc: '法規審查常見問題', coming: true },
-                { emoji: '🏷️', label: '法規更新紀錄', desc: '條文修正版本追蹤', view: 'version_mgmt' as AppView },
+                { emoji: '🤖', label: 'AI 法規助理', desc: '智慧法規問答', view: 'ai_assistant' as AppView },
               ]}
               onNavigate={onNavigate}
             />
