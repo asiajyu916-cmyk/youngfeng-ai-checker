@@ -442,6 +442,31 @@ const H2_CARDS: H2Card[] = [
   },
 ]
 
+// ─── 送審前必要法規檢核清單（20 項）──────────────────────────────────────
+
+const PRE_SUBMIT_ITEMS: { id: string; label: string }[] = [
+  { id: 'ps01', label: '宜居陽台檢討' },
+  { id: 'ps02', label: '宜居建築回饋辦法' },
+  { id: 'ps03', label: '緊急進口檢討' },
+  { id: 'ps04', label: '屋頂避難平台' },
+  { id: 'ps05', label: '開放空間獎勵' },
+  { id: 'ps06', label: '容積移轉' },
+  { id: 'ps07', label: '無障礙停車位' },
+  { id: 'ps08', label: '無障礙昇降設備' },
+  { id: 'ps09', label: '機車位數量' },
+  { id: 'ps10', label: '裝卸車位' },
+  { id: 'ps11', label: '消防救災空間' },
+  { id: 'ps12', label: '垃圾儲存空間' },
+  { id: 'ps13', label: '法定空地綠化' },
+  { id: 'ps14', label: '雨水貯留設施' },
+  { id: 'ps15', label: '水土保持' },
+  { id: 'ps16', label: '都市設計審議附帶決議' },
+  { id: 'ps17', label: '高層建築特殊規定' },
+  { id: 'ps18', label: '水湳經貿園區特殊規定' },
+  { id: 'ps19', label: '危老獎勵檢討' },
+  { id: 'ps20', label: '都更獎勵檢討' },
+]
+
 // ─── 搜尋邏輯 ──────────────────────────────────────────────────────────────
 
 function matchCard(card: H2Card, q: string): boolean {
@@ -472,64 +497,61 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
       className={`bg-white rounded-2xl border transition-all duration-200 print-card overflow-hidden
         ${isExpanded ? 'border-blue-200 shadow-lg' : 'border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300'}`}
     >
-      {/* ── 卡片標題列（深藍色區域）───────────────────────── */}
+      {/* ── 深藍標題列（列高 56~64px）──────────────────────── */}
       <button
         onClick={onToggle}
-        className={`w-full text-left flex items-center gap-3 px-5 py-4 transition-colors group
+        className={`w-full text-left flex items-center gap-4 px-6 py-5 min-h-[60px] transition-colors
           ${isExpanded ? 'bg-slate-800' : 'bg-slate-800 hover:bg-slate-700'}`}
       >
         {/* 序號 */}
-        <span className="w-8 h-8 rounded-lg bg-white/15 text-white text-sm font-bold flex items-center justify-center shrink-0">
+        <span className="w-9 h-9 rounded-lg bg-white/15 text-white text-base font-bold flex items-center justify-center shrink-0">
           {String(card.no).padStart(2, '0')}
         </span>
 
-        {/* 標題 + 星號 */}
+        {/* 標題 + 星號  ← 18px */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-base font-bold text-white leading-tight truncate">{card.title}</span>
+          <span className="text-lg font-bold text-white leading-snug">{card.title}</span>
           {card.starred && (
-            <span className="shrink-0 text-amber-400 text-base leading-none" title="重要項目">⭐</span>
+            <span className="shrink-0 text-amber-400 text-lg leading-none" title="台中特殊重要項目">⭐</span>
           )}
         </div>
 
         {/* 操作區 */}
         <div className="flex items-center gap-2 shrink-0 print:hidden">
-          {/* 收藏 */}
           <div
             role="button"
             onClick={e => { e.stopPropagation(); onBookmark() }}
-            className={`p-1.5 rounded-lg transition-colors
+            className={`p-2 rounded-lg transition-colors
               ${isBookmarked ? 'text-amber-400 bg-white/15' : 'text-white/40 hover:text-amber-300 hover:bg-white/10'}`}
             title={isBookmarked ? '取消收藏' : '加入收藏'}
           >
-            <svg className="w-4 h-4" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
           </div>
-
-          {/* 展開/收合箭頭 */}
           <div className={`text-white/60 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
         </div>
       </button>
 
-      {/* ── 展開內容 ──────────────────────────────────────── */}
+      {/* ── 展開內容（淺灰內容區，16px 正文）─────────────── */}
       {isExpanded && (
         <div className="divide-y divide-gray-100">
 
           {/* 【檢討項目】 */}
-          <div className="px-5 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-4 w-1 bg-slate-700 rounded-full shrink-0" />
-              <span className="text-xs font-bold text-slate-700 tracking-wide">檢討項目</span>
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-5 w-1.5 bg-slate-700 rounded-full shrink-0" />
+              <span className="text-sm font-bold text-slate-700 tracking-wide uppercase">檢討項目</span>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {card.checkItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700 leading-relaxed">
-                  <span className="mt-0.5 shrink-0 w-4 h-4 border-2 border-gray-300 rounded" />
+                <li key={i} className="flex items-start gap-3 text-base text-gray-700 leading-[1.6]">
+                  <span className="mt-0.5 shrink-0 w-5 h-5 border-2 border-gray-300 rounded" />
                   {item}
                 </li>
               ))}
@@ -537,15 +559,15 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
           </div>
 
           {/* 【必要檢討事項】 */}
-          <div className="px-5 py-4 bg-slate-50">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-4 w-1 bg-blue-600 rounded-full shrink-0" />
-              <span className="text-xs font-bold text-blue-700 tracking-wide">必要檢討事項</span>
+          <div className="px-6 py-5 bg-slate-50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-5 w-1.5 bg-blue-600 rounded-full shrink-0" />
+              <span className="text-sm font-bold text-blue-700 tracking-wide uppercase">必要檢討事項</span>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {card.keyPoints.map((pt, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-slate-700 leading-relaxed">
-                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                <li key={i} className="flex items-start gap-3 text-base text-slate-700 leading-[1.6]">
+                  <span className="mt-2 w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                   {pt}
                 </li>
               ))}
@@ -553,15 +575,15 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
           </div>
 
           {/* 【法規依據】 */}
-          <div className="px-5 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-4 w-1 bg-green-600 rounded-full shrink-0" />
-              <span className="text-xs font-bold text-green-700 tracking-wide">法規依據</span>
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-5 w-1.5 bg-green-600 rounded-full shrink-0" />
+              <span className="text-sm font-bold text-green-700 tracking-wide uppercase">法規依據</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {card.legalBasis.map((law, i) => (
                 <span key={i}
-                  className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full border border-gray-200 leading-tight">
+                  className="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-full border border-gray-200 leading-snug">
                   {law}
                 </span>
               ))}
@@ -586,12 +608,27 @@ export default function H2ChecklistView({ onNavigate }: Props) {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
   const [showOnlyBookmarked, setShowOnlyBookmarked] = useState(false)
 
-  // 從 localStorage 讀收藏
+  // 送審前必要法規檢核清單狀態
+  const [preSubmitOpen, setPreSubmitOpen]       = useState(true)
+  const [preSubmitChecked, setPreSubmitChecked] = useState<Set<string>>(new Set())
+
+  // 從 localStorage 讀取
   useEffect(() => {
     try {
       const saved = localStorage.getItem('h2-bookmarks')
       if (saved) setBookmarks(new Set(JSON.parse(saved) as string[]))
+      const ps = localStorage.getItem('h2-presubmit')
+      if (ps) setPreSubmitChecked(new Set(JSON.parse(ps) as string[]))
     } catch {}
+  }, [])
+
+  const togglePreSubmit = useCallback((id: string) => {
+    setPreSubmitChecked(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      try { localStorage.setItem('h2-presubmit', JSON.stringify([...next])) } catch {}
+      return next
+    })
   }, [])
 
   const saveBookmarks = useCallback((next: Set<string>) => {
@@ -649,68 +686,160 @@ export default function H2ChecklistView({ onNavigate }: Props) {
       `}</style>
 
       <div className="w-full md:flex-1 md:overflow-y-auto bg-gray-50">
-        <div className="print-area max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-8 pb-24 md:pb-12">
+        <div className="print-area max-w-4xl mx-auto px-5 md:px-10 py-7 md:py-10 pb-24 md:pb-14">
 
           {/* ── 頁首 ───────────────────────────────────────── */}
-          <div className="mb-6">
+          <div className="mb-7">
             {onNavigate && (
               <button
                 onClick={() => onNavigate('resource_center')}
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors mb-3 print:hidden"
+                className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 transition-colors mb-4 print:hidden"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 建築資源中心
               </button>
             )}
 
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2.5 mb-1.5">
-                  <span className="text-2xl">📋</span>
-                  <h1 className="text-xl font-bold text-gray-800">H2 法規自主檢討項目表</h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-3xl">📋</span>
+                  {/* 主標題 20px */}
+                  <h1 className="text-xl font-bold text-gray-800" style={{ fontSize: '20px', lineHeight: '1.4' }}>
+                    H2 法規自主檢討項目表
+                  </h1>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-base text-gray-500 leading-[1.6]">
                   H2 階段自主法規檢核工具｜共 <span className="font-bold text-gray-700">{H2_CARDS.length}</span> 項主題
-                  <span className="ml-2 text-amber-600 font-semibold">⭐ {starredCards.length} 項重要</span>
+                  <span className="ml-2 text-amber-600 font-semibold">⭐ {starredCards.length} 項台中特殊</span>
                 </p>
               </div>
 
               {/* 操作按鈕組 */}
-              <div className="flex items-center gap-2 print:hidden">
+              <div className="flex items-center gap-2 print:hidden flex-wrap">
                 <button
                   onClick={handlePrint}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
-                  title="列印 / 存成 PDF"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                   </svg>
                   列印
                 </button>
                 <button onClick={expandAll}
-                  className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
                   全部展開
                 </button>
                 <button onClick={collapseAll}
-                  className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
                   全部收合
                 </button>
               </div>
             </div>
           </div>
 
-          {/* ── ⭐ 重要主題快速導覽 ──────────────────────────── */}
+          {/* ── 送審前必要法規檢核項目（20項完整清單）─────── */}
           {!query && !showOnlyBookmarked && (
-            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 print:hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-base">⭐</span>
-                <span className="text-sm font-bold text-amber-800">台中市特殊法規重要主題</span>
-                <span className="text-xs text-amber-600 font-medium">點擊展開查看</span>
+            <div className="mb-7 rounded-2xl border-2 border-slate-700 overflow-hidden shadow-md print-card">
+              {/* 區塊標題列 */}
+              <button
+                onClick={() => setPreSubmitOpen(v => !v)}
+                className="w-full flex items-center justify-between gap-4 px-6 py-5 bg-slate-800 hover:bg-slate-700 transition-colors min-h-[64px]"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">✅</span>
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-white leading-snug">送審前必要法規檢核項目</div>
+                    <div className="text-sm text-slate-300 mt-0.5 leading-snug">建照申請前建議逐項確認</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-sm font-bold text-white bg-white/20 px-3 py-1.5 rounded-full">
+                    {preSubmitChecked.size} / {PRE_SUBMIT_ITEMS.length} 已確認
+                  </span>
+                  <svg
+                    className={`w-5 h-5 text-white/70 transition-transform duration-200 ${preSubmitOpen ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* 進度條 */}
+              <div className="h-1.5 bg-slate-200">
+                <div
+                  className="h-full bg-green-500 transition-all duration-500"
+                  style={{ width: `${(preSubmitChecked.size / PRE_SUBMIT_ITEMS.length) * 100}%` }}
+                />
               </div>
-              <div className="flex flex-wrap gap-2">
+
+              {/* 展開清單 */}
+              {preSubmitOpen && (
+                <div className="bg-white px-6 py-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
+                    {PRE_SUBMIT_ITEMS.map(item => {
+                      const isChecked = preSubmitChecked.has(item.id)
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => togglePreSubmit(item.id)}
+                          className={`flex items-center gap-3 px-3 py-3.5 rounded-xl text-left transition-all min-h-[56px] group
+                            ${isChecked
+                              ? 'bg-green-50 hover:bg-green-100'
+                              : 'hover:bg-gray-50 active:bg-gray-100'}`}
+                        >
+                          {/* Checkbox */}
+                          <span className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+                            ${isChecked ? 'bg-green-500 border-green-500' : 'border-gray-300 group-hover:border-green-400'}`}>
+                            {isChecked && (
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </span>
+                          {/* 項目文字 16px */}
+                          <span className={`text-base font-medium leading-[1.6] transition-colors
+                            ${isChecked ? 'text-green-700 line-through decoration-green-400' : 'text-gray-800'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* 底部操作 */}
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <span className="text-sm text-gray-500 leading-[1.6]">
+                      勾選狀態儲存於本機裝置
+                    </span>
+                    <button
+                      onClick={() => {
+                        setPreSubmitChecked(new Set())
+                        try { localStorage.removeItem('h2-presubmit') } catch {}
+                      }}
+                      className="text-sm text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
+                    >
+                      清除全部勾選
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ⭐ 台中特殊法規快速導覽 ──────────────────────── */}
+          {!query && !showOnlyBookmarked && (
+            <div className="mb-7 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 print:hidden">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">⭐</span>
+                <span className="text-base font-bold text-amber-800">台中市特殊法規重要主題</span>
+                <span className="text-sm text-amber-600 font-medium">點擊展開查看</span>
+              </div>
+              <div className="flex flex-wrap gap-2.5">
                 {starredCards.map(card => (
                   <button
                     key={card.id}
@@ -718,7 +847,7 @@ export default function H2ChecklistView({ onNavigate }: Props) {
                       setExpanded(prev => new Set([...prev, card.id]))
                       setTimeout(() => document.getElementById(`card-${card.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-amber-200 text-xs font-semibold text-amber-800 hover:bg-amber-100 hover:border-amber-300 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-amber-200 text-sm font-semibold text-amber-800 hover:bg-amber-100 hover:border-amber-300 transition-colors shadow-sm"
                   >
                     <span>{String(card.no).padStart(2, '0')}</span>
                     <span>{card.title}</span>
@@ -730,10 +859,10 @@ export default function H2ChecklistView({ onNavigate }: Props) {
           )}
 
           {/* ── 搜尋 + 篩選列 ─────────────────────────────── */}
-          <div className="flex gap-2 mb-5 print:hidden">
+          <div className="flex gap-3 mb-6 print:hidden">
             <div className="relative flex-1">
-              <div className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
                 </svg>
@@ -743,12 +872,12 @@ export default function H2ChecklistView({ onNavigate }: Props) {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="搜尋，例如：停車、無障礙、採光、日照、危老、宜居、水湳"
-                className="w-full pl-10 pr-9 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                className="w-full pl-11 pr-10 py-3.5 bg-white border border-gray-200 rounded-xl text-base text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm leading-[1.6]"
               />
               {query && (
                 <button onClick={() => setQuery('')}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  className="absolute inset-y-0 right-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -756,12 +885,12 @@ export default function H2ChecklistView({ onNavigate }: Props) {
             </div>
             <button
               onClick={() => setShowOnlyBookmarked(v => !v)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-xs font-semibold transition-colors shadow-sm shrink-0
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-sm font-semibold transition-colors shadow-sm shrink-0
                 ${showOnlyBookmarked
                   ? 'bg-amber-50 border-amber-300 text-amber-700'
                   : 'bg-white border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600'}`}
             >
-              <svg className="w-3.5 h-3.5" fill={showOnlyBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill={showOnlyBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
@@ -770,7 +899,7 @@ export default function H2ChecklistView({ onNavigate }: Props) {
           </div>
 
           {(query || showOnlyBookmarked) && (
-            <div className="text-xs text-gray-500 mb-3 print:hidden">
+            <div className="text-sm text-gray-500 mb-4 print:hidden leading-[1.6]">
               {filtered.length > 0
                 ? <>顯示 <span className="font-bold text-gray-700">{filtered.length}</span> 項{query ? `符合「${query}」的` : ''}主題</>
                 : <span className="text-red-500">找不到符合的主題</span>
