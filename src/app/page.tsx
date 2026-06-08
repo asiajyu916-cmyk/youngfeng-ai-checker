@@ -16,6 +16,7 @@ import LoginPage from '@/components/LoginPage'
 import DashboardView from '@/views/DashboardView'
 import LandQueryView from '@/views/LandQueryView'
 import ZoningRulesPanel from '@/views/ZoningRulesPanel'
+import ResourceCenterView from '@/views/ResourceCenterView'
 import PlaceholderView from '@/views/PlaceholderView'
 import { runCheck } from '@/lib/ruleEngine'
 import { useAuth } from '@/hooks/useAuth'
@@ -57,6 +58,7 @@ const BREADCRUMBS: Partial<Record<AppView, string[]>> = {
   history:        ['檢核作業', '歷史檢核紀錄'],
   land_query:     ['檢核作業', '地號查詢'],
   zoning_rules:   ['檢核作業', '建蔽容積查詢'],
+  resource_center: ['建築資源中心'],
   regulation_db:  ['法規資料庫', '法規總覽'],
   article_search: ['法規資料庫', '條文檢索'],
   related_laws:   ['法規資料庫', '相關法規'],
@@ -406,6 +408,9 @@ export default function Home() {
             </div>
           </div>
         )
+
+      case 'resource_center':
+        return <ResourceCenterView />
 
       case 'ai_assistant':
         return <AIAssistant embedded />

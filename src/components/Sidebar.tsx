@@ -77,6 +77,12 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: '建築資源中心',
+    items: [
+      { id: 'resource_center', label: '建築資源中心', icon: <IconMap size={15} />, badge: 'NEW' },
+    ],
+  },
+  {
     title: '法規資料庫',
     items: [
       { id: 'regulation_db',  label: '法規資料庫', icon: <IconBook size={15} /> },
