@@ -495,24 +495,26 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
   return (
     <div
       className={`bg-white rounded-2xl border transition-all duration-200 print-card overflow-hidden
-        ${isExpanded ? 'border-blue-200 shadow-lg' : 'border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300'}`}
+        ${isExpanded ? 'border-orange-300 shadow-lg' : 'border-gray-200 shadow-sm hover:shadow-md hover:border-orange-200'}`}
     >
-      {/* ── 深藍標題列（列高 56~64px）──────────────────────── */}
+      {/* ── 深橘標題列（列高 64px）────────────────────────── */}
       <button
         onClick={onToggle}
-        className={`w-full text-left flex items-center gap-4 px-6 py-5 min-h-[60px] transition-colors
-          ${isExpanded ? 'bg-slate-800' : 'bg-slate-800 hover:bg-slate-700'}`}
+        className="w-full text-left flex items-center gap-4 px-7 py-5 min-h-[64px] transition-colors"
+        style={{ backgroundColor: isExpanded ? '#B35D0F' : '#C96A12' }}
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#B35D0F')}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = isExpanded ? '#B35D0F' : '#C96A12')}
       >
         {/* 序號 */}
-        <span className="w-9 h-9 rounded-lg bg-white/15 text-white text-base font-bold flex items-center justify-center shrink-0">
+        <span className="w-10 h-10 rounded-xl bg-white/20 text-white text-base font-bold flex items-center justify-center shrink-0 border border-white/30">
           {String(card.no).padStart(2, '0')}
         </span>
 
         {/* 標題 + 星號  ← 18px */}
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-lg font-bold text-white leading-snug">{card.title}</span>
+        <div className="flex-1 min-w-0 flex items-center gap-2.5">
+          <span className="text-lg font-bold text-white leading-snug tracking-wide">{card.title}</span>
           {card.starred && (
-            <span className="shrink-0 text-amber-400 text-lg leading-none" title="台中特殊重要項目">⭐</span>
+            <span className="shrink-0 text-amber-300 text-lg leading-none" title="台中特殊重要項目">⭐</span>
           )}
         </div>
 
@@ -522,7 +524,7 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
             role="button"
             onClick={e => { e.stopPropagation(); onBookmark() }}
             className={`p-2 rounded-lg transition-colors
-              ${isBookmarked ? 'text-amber-400 bg-white/15' : 'text-white/40 hover:text-amber-300 hover:bg-white/10'}`}
+              ${isBookmarked ? 'text-amber-300 bg-white/20' : 'text-white/50 hover:text-amber-300 hover:bg-white/15'}`}
             title={isBookmarked ? '取消收藏' : '加入收藏'}
           >
             <svg className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
@@ -530,7 +532,7 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
                 d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
           </div>
-          <div className={`text-white/60 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+          <div className={`text-white/70 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -538,20 +540,20 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
         </div>
       </button>
 
-      {/* ── 展開內容（淺灰內容區，16px 正文）─────────────── */}
+      {/* ── 展開內容（白底內容區，17px 正文）─────────────── */}
       {isExpanded && (
         <div className="divide-y divide-gray-100">
 
           {/* 【檢討項目】 */}
-          <div className="px-6 py-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-5 w-1.5 bg-slate-700 rounded-full shrink-0" />
-              <span className="text-sm font-bold text-slate-700 tracking-wide uppercase">檢討項目</span>
+          <div className="px-8 py-6">
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="h-5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: '#C96A12' }} />
+              <span className="text-sm font-bold tracking-widest uppercase" style={{ color: '#A05010' }}>檢討項目</span>
             </div>
-            <ul className="space-y-3">
+            <ul className="space-y-3.5">
               {card.checkItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-3 text-base text-gray-700 leading-[1.6]">
-                  <span className="mt-0.5 shrink-0 w-5 h-5 border-2 border-gray-300 rounded" />
+                <li key={i} className="flex items-start gap-3.5 text-gray-700 leading-[1.7]" style={{ fontSize: '17px' }}>
+                  <span className="mt-0.5 shrink-0 w-5 h-5 border-2 border-orange-300 rounded" />
                   {item}
                 </li>
               ))}
@@ -559,15 +561,15 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
           </div>
 
           {/* 【必要檢討事項】 */}
-          <div className="px-6 py-5 bg-slate-50">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="px-8 py-6 bg-orange-50/40">
+            <div className="flex items-center gap-2.5 mb-5">
               <div className="h-5 w-1.5 bg-blue-600 rounded-full shrink-0" />
-              <span className="text-sm font-bold text-blue-700 tracking-wide uppercase">必要檢討事項</span>
+              <span className="text-sm font-bold text-blue-700 tracking-widest uppercase">必要檢討事項</span>
             </div>
-            <ul className="space-y-3">
+            <ul className="space-y-3.5">
               {card.keyPoints.map((pt, i) => (
-                <li key={i} className="flex items-start gap-3 text-base text-slate-700 leading-[1.6]">
-                  <span className="mt-2 w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+                <li key={i} className="flex items-start gap-3.5 text-slate-700 leading-[1.7]" style={{ fontSize: '17px' }}>
+                  <span className="mt-2.5 w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                   {pt}
                 </li>
               ))}
@@ -575,12 +577,12 @@ function H2CardItem({ card, isExpanded, isBookmarked, onToggle, onBookmark }: Ca
           </div>
 
           {/* 【法規依據】 */}
-          <div className="px-6 py-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-5 w-1.5 bg-green-600 rounded-full shrink-0" />
-              <span className="text-sm font-bold text-green-700 tracking-wide uppercase">法規依據</span>
+          <div className="px-8 py-6">
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="h-5 w-1.5 bg-emerald-600 rounded-full shrink-0" />
+              <span className="text-sm font-bold text-emerald-700 tracking-widest uppercase">法規依據</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {card.legalBasis.map((law, i) => (
                 <span key={i}
                   className="text-sm bg-gray-100 text-gray-600 px-4 py-2 rounded-full border border-gray-200 leading-snug">
@@ -743,25 +745,40 @@ export default function H2ChecklistView({ onNavigate }: Props) {
 
           {/* ── 送審前必要法規檢核項目（20項完整清單）─────── */}
           {!query && !showOnlyBookmarked && (
-            <div className="mb-7 rounded-2xl border-2 border-slate-700 overflow-hidden shadow-md print-card">
+            <div className="mb-7 rounded-2xl overflow-hidden shadow-md print-card"
+              style={{ border: '2px solid #A05010' }}>
               {/* 區塊標題列 */}
               <button
                 onClick={() => setPreSubmitOpen(v => !v)}
-                className="w-full flex items-center justify-between gap-4 px-6 py-5 bg-slate-800 hover:bg-slate-700 transition-colors min-h-[64px]"
+                className="w-full flex items-center justify-between gap-4 px-7 py-5 transition-colors min-h-[68px]"
+                style={{ backgroundColor: '#C96A12' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#B35D0F')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#C96A12')}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">✅</span>
+                <div className="flex items-center gap-3.5">
+                  {/* 圖示替代 emoji，更專業 */}
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 border border-white/30">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </div>
                   <div className="text-left">
-                    <div className="text-lg font-bold text-white leading-snug">送審前必要法規檢核項目</div>
-                    <div className="text-sm text-slate-300 mt-0.5 leading-snug">建照申請前建議逐項確認</div>
+                    <div className="text-lg font-bold text-white leading-snug tracking-wide">
+                      送審前必要法規檢核項目
+                    </div>
+                    <div className="text-sm mt-0.5 leading-snug" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                      建照申請前逐項確認｜共 {PRE_SUBMIT_ITEMS.length} 項
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm font-bold text-white bg-white/20 px-3 py-1.5 rounded-full">
+                  <span className="text-sm font-bold text-white bg-white/20 px-4 py-1.5 rounded-full border border-white/30">
                     {preSubmitChecked.size} / {PRE_SUBMIT_ITEMS.length} 已確認
                   </span>
                   <svg
-                    className={`w-5 h-5 text-white/70 transition-transform duration-200 ${preSubmitOpen ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 transition-transform duration-200 ${preSubmitOpen ? 'rotate-180' : ''}`}
+                    style={{ color: 'rgba(255,255,255,0.75)' }}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -770,40 +787,45 @@ export default function H2ChecklistView({ onNavigate }: Props) {
               </button>
 
               {/* 進度條 */}
-              <div className="h-1.5 bg-slate-200">
+              <div className="h-2 bg-orange-100">
                 <div
-                  className="h-full bg-green-500 transition-all duration-500"
+                  className="h-full bg-emerald-500 transition-all duration-500"
                   style={{ width: `${(preSubmitChecked.size / PRE_SUBMIT_ITEMS.length) * 100}%` }}
                 />
               </div>
 
               {/* 展開清單 */}
               {preSubmitOpen && (
-                <div className="bg-white px-6 py-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
+                <div className="bg-white px-8 py-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-1">
                     {PRE_SUBMIT_ITEMS.map(item => {
                       const isChecked = preSubmitChecked.has(item.id)
                       return (
                         <button
                           key={item.id}
                           onClick={() => togglePreSubmit(item.id)}
-                          className={`flex items-center gap-3 px-3 py-3.5 rounded-xl text-left transition-all min-h-[56px] group
+                          className={`flex items-center gap-4 px-4 py-4 rounded-xl text-left transition-all min-h-[60px] group
                             ${isChecked
-                              ? 'bg-green-50 hover:bg-green-100'
-                              : 'hover:bg-gray-50 active:bg-gray-100'}`}
+                              ? 'bg-emerald-50 hover:bg-emerald-100'
+                              : 'hover:bg-orange-50 active:bg-orange-100'}`}
                         >
                           {/* Checkbox */}
-                          <span className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
-                            ${isChecked ? 'bg-green-500 border-green-500' : 'border-gray-300 group-hover:border-green-400'}`}>
+                          <span className={`shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors
+                            ${isChecked
+                              ? 'bg-emerald-500 border-emerald-500'
+                              : 'border-gray-300 group-hover:border-orange-400'}`}>
                             {isChecked && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
                             )}
                           </span>
-                          {/* 項目文字 16px */}
-                          <span className={`text-base font-medium leading-[1.6] transition-colors
-                            ${isChecked ? 'text-green-700 line-through decoration-green-400' : 'text-gray-800'}`}>
+                          {/* 項目文字 17px */}
+                          <span
+                            className={`font-medium leading-[1.6] transition-colors
+                              ${isChecked ? 'text-emerald-700 line-through decoration-emerald-400' : 'text-gray-800'}`}
+                            style={{ fontSize: '17px' }}
+                          >
                             {item.label}
                           </span>
                         </button>
@@ -812,16 +834,16 @@ export default function H2ChecklistView({ onNavigate }: Props) {
                   </div>
 
                   {/* 底部操作 */}
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                    <span className="text-sm text-gray-500 leading-[1.6]">
-                      勾選狀態儲存於本機裝置
+                  <div className="flex items-center justify-between mt-5 pt-5 border-t border-gray-100">
+                    <span className="text-sm text-gray-400 leading-[1.6]">
+                      勾選狀態自動儲存於本機裝置
                     </span>
                     <button
                       onClick={() => {
                         setPreSubmitChecked(new Set())
                         try { localStorage.removeItem('h2-presubmit') } catch {}
                       }}
-                      className="text-sm text-gray-400 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50"
+                      className="text-sm text-gray-400 hover:text-red-500 transition-colors px-4 py-2 rounded-lg hover:bg-red-50"
                     >
                       清除全部勾選
                     </button>
@@ -939,12 +961,13 @@ export default function H2ChecklistView({ onNavigate }: Props) {
           )}
 
           {/* ── 頁尾提醒 ───────────────────────────────────── */}
-          <div className="mt-10 flex items-start gap-2.5 p-4 bg-blue-50 border border-blue-100 rounded-xl print:hidden">
-            <svg className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mt-10 flex items-start gap-3 px-6 py-5 bg-orange-50 border border-orange-200 rounded-2xl print:hidden">
+            <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              style={{ color: '#C96A12' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-xs text-blue-700 leading-relaxed">
+            <p className="text-sm leading-[1.7]" style={{ color: '#7A3D08' }}>
               本表為 H2 階段法規自主檢討參考工具，適用建築師事務所內部教育訓練及案件自主檢核。法規數值以主管機關最新公告版本為準，正式申請前請與主辦建築師確認。
             </p>
           </div>
