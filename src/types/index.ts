@@ -245,6 +245,7 @@ export type AppView =
   | 'land_query'
   | 'zoning_rules'
   | 'resource_center'
+  | 'h2_checklist'
   | 'regulation_db'
   | 'article_search'
   | 'related_laws'

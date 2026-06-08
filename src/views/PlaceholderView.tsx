@@ -10,6 +10,7 @@ const VIEW_LABELS: Record<AppView, string> = {
   land_query: '地號查詢',
   zoning_rules: '建蔽容積查詢',
   resource_center: '建築資源中心',
+  h2_checklist: 'H2 法規自主檢討項目表',
   regulation_db: '法規資料庫',
   article_search: '條文檢索',
   related_laws: '相關法規',

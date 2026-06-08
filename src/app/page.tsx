@@ -17,6 +17,7 @@ import DashboardView from '@/views/DashboardView'
 import LandQueryView from '@/views/LandQueryView'
 import ZoningRulesPanel from '@/views/ZoningRulesPanel'
 import ResourceCenterView from '@/views/ResourceCenterView'
+import H2ChecklistView from '@/views/H2ChecklistView'
 import RegulationDbView from '@/views/RegulationDbView'
 import PlaceholderView from '@/views/PlaceholderView'
 import { runCheck } from '@/lib/ruleEngine'
@@ -60,6 +61,7 @@ const BREADCRUMBS: Partial<Record<AppView, string[]>> = {
   land_query:     ['檢核作業', '地號查詢'],
   zoning_rules:   ['檢核作業', '建蔽容積查詢'],
   resource_center: ['建築資源中心'],
+  h2_checklist:    ['建築資源中心', 'H2 法規自主檢討項目表'],
   regulation_db:  ['法規資料庫', '法規總覽'],
   article_search: ['法規資料庫', '條文檢索'],
   related_laws:   ['法規資料庫', '相關法規'],
@@ -411,7 +413,10 @@ export default function Home() {
         )
 
       case 'resource_center':
-        return <ResourceCenterView />
+        return <ResourceCenterView onNavigate={handleNavigate} />
+
+      case 'h2_checklist':
+        return <H2ChecklistView onNavigate={handleNavigate} />
 
       case 'regulation_db':
         return <RegulationDbView />

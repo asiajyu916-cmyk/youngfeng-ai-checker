@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import type { AppView } from '@/types'
 
 // ─── 資料定義 ──────────────────────────────────────────────────────────────
 
@@ -200,14 +201,6 @@ const CATEGORIES: Category[] = [
         tag: '國際資源',
         keywords: ['BIM', 'Revit', '元件', '族群', 'family'],
       },
-      {
-        id: 'drw-05',
-        name: '永豐內部表單專區',
-        url: 'https://docs.google.com/spreadsheets/d/1c2BCj1RfaRht3riEzG7PyMpOkl10AcB6dJsI7bSpDto/edit?gid=687113324#gid=687113324',
-        desc: '永豐建築師事務所內部常用計算表單（需 Google 帳號登入存取）',
-        tag: '內部資源',
-        keywords: ['Excel', '表單', '計算表', '內部', '永豐'],
-      },
     ],
   },
 ]
@@ -317,7 +310,11 @@ function CategorySection({ cat }: { cat: Category }) {
 
 // ─── 主元件 ────────────────────────────────────────────────────────────────
 
-export default function ResourceCenterView() {
+interface Props {
+  onNavigate?: (view: AppView) => void
+}
+
+export default function ResourceCenterView({ onNavigate }: Props) {
   const [query, setQuery] = useState('')
 
   const isSearching = query.trim() !== ''
@@ -383,6 +380,37 @@ export default function ResourceCenterView() {
             </button>
           )}
         </div>
+
+        {/* ── 內建工具：H2 法規自主檢討 ───────────────── */}
+        {!isSearching && onNavigate && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm">🔧</span>
+              <h2 className="text-sm font-bold text-gray-700">內建工具</h2>
+            </div>
+            <div
+              onClick={() => onNavigate('h2_checklist')}
+              className="cursor-pointer bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl p-5 flex items-center gap-5 hover:from-blue-800 hover:to-blue-950 transition-all shadow-md group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">
+                📋
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white font-bold text-base leading-tight">H2 法規自主檢討項目表</div>
+                <div className="text-blue-200 text-xs mt-1">H2 階段常用法規自主檢核項目</div>
+                <div className="text-blue-300 text-xs mt-1">共 15 項主題｜可搜尋・可展開・可收藏・可列印</div>
+              </div>
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="text-xs bg-white/20 text-white px-2.5 py-1 rounded-full font-semibold">
+                  進入檢討表
+                </span>
+                <svg className="w-4 h-4 text-white/70 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── 搜尋模式：平鋪結果 ──────────────────────── */}
         {isSearching && (
