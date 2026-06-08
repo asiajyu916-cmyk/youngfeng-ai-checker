@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 
 // ─── 資料定義 ──────────────────────────────────────────────────────────────
 
-type Tag = '台中市' | '全國'
+type Tag = '台中市' | '全國' | '國際資源' | '內部資源'
 
 interface Resource {
   id: string
@@ -163,6 +163,53 @@ const CATEGORIES: Category[] = [
       },
     ],
   },
+  {
+    id: 'drawing',
+    emoji: '✏️',
+    title: '繪圖資源專區',
+    resources: [
+      {
+        id: 'drw-01',
+        name: 'CAD Blocks 免費 CAD 圖塊',
+        url: 'https://www.cadblocks.net/',
+        desc: '免費下載建築常用 DWG 圖塊素材',
+        tag: '國際資源',
+        keywords: ['CAD', 'DWG', '圖塊', 'AutoCAD', '素材'],
+      },
+      {
+        id: 'drw-02',
+        name: 'BIM 知識資源平台',
+        url: 'https://biminfo.com.tw/',
+        desc: '台灣 BIM 技術交流與教學資源平台',
+        tag: '全國',
+        keywords: ['BIM', 'Revit', '建築資訊模型', '台灣BIM'],
+      },
+      {
+        id: 'drw-03',
+        name: 'Archiproducts 材質資料庫',
+        url: 'https://www.archiproducts.com/',
+        desc: '國際建築材質、建材產品資料庫',
+        tag: '國際資源',
+        keywords: ['材質', '建材', '產品', 'Archiproducts'],
+      },
+      {
+        id: 'drw-04',
+        name: 'BIMobject Revit 元件庫',
+        url: 'https://www.bimobject.com/',
+        desc: '免費下載廠商認證 BIM／Revit 元件',
+        tag: '國際資源',
+        keywords: ['BIM', 'Revit', '元件', '族群', 'family'],
+      },
+      {
+        id: 'drw-05',
+        name: '永豐內部 Excel 表單專區',
+        url: 'https://drive.google.com/',
+        desc: '永豐建築師事務所內部常用計算表單（需登入存取）',
+        tag: '內部資源',
+        keywords: ['Excel', '表單', '計算表', '內部', '永豐'],
+      },
+    ],
+  },
 ]
 
 // 所有資源攤平（搜尋用）
@@ -176,8 +223,10 @@ const TOTAL = ALL_RESOURCES.length
 // ─── 標籤顏色 ──────────────────────────────────────────────────────────────
 
 const TAG_STYLES: Record<Tag, { bg: string; text: string; border: string }> = {
-  台中市: { bg: 'bg-blue-50',   text: 'text-blue-700',  border: 'border-blue-200' },
-  全國:   { bg: 'bg-green-50',  text: 'text-green-700', border: 'border-green-200' },
+  台中市:   { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200' },
+  全國:     { bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200' },
+  國際資源: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  內部資源: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
 }
 
 // ─── 搜尋邏輯 ──────────────────────────────────────────────────────────────

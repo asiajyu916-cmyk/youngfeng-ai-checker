@@ -62,18 +62,6 @@ const SECTIONS: NavSection[] = [
       { id: 'history',      label: '歷史檢核紀錄', icon: <IconHistory size={15} /> },
       { id: 'land_query',   label: '地號查詢',    icon: <IconMap size={15} />, badge: 'NEW' },
       { id: 'zoning_rules', label: '建蔽容積查詢', icon: <IconBook size={15} /> },
-      // ── 外部基地查詢 ──
-      { divider: true, label: '外部基地查詢' },
-      {
-        href:  'https://lohas.taichung.gov.tw/webgis/',
-        label: '158 空間資訊網',
-        icon:  <IconMap size={14} />,
-      },
-      {
-        href:  'https://luz.nlma.gov.tw/web/',
-        label: 'LUZ 土地使用分區',
-        icon:  <IconLink size={14} />,
-      },
     ],
   },
   {
@@ -89,18 +77,6 @@ const SECTIONS: NavSection[] = [
       { id: 'article_search', label: '條文檢索',   icon: <IconSearch size={15} /> },
       { id: 'related_laws',   label: '相關法規',   icon: <IconLink size={15} /> },
       { id: 'ai_rulings',     label: '函釋案例',   icon: <IconDoc size={15} /> },
-      // ── 外部法規查詢 ──
-      { divider: true, label: '外部法規查詢' },
-      {
-        href:  'https://www.ud.taichung.gov.tw/28928/29030/29058/2346379',
-        label: '台中市土管查詢',
-        icon:  <IconDoc size={14} />,
-      },
-      {
-        href:  'https://arch-people.com/laws/',
-        label: '建築人法規查詢',
-        icon:  <IconSearch size={14} />,
-      },
     ],
   },
   {

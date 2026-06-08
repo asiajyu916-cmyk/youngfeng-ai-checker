@@ -17,6 +17,7 @@ import DashboardView from '@/views/DashboardView'
 import LandQueryView from '@/views/LandQueryView'
 import ZoningRulesPanel from '@/views/ZoningRulesPanel'
 import ResourceCenterView from '@/views/ResourceCenterView'
+import RegulationDbView from '@/views/RegulationDbView'
 import PlaceholderView from '@/views/PlaceholderView'
 import { runCheck } from '@/lib/ruleEngine'
 import { useAuth } from '@/hooks/useAuth'
@@ -411,6 +412,9 @@ export default function Home() {
 
       case 'resource_center':
         return <ResourceCenterView />
+
+      case 'regulation_db':
+        return <RegulationDbView />
 
       case 'ai_assistant':
         return <AIAssistant embedded />
