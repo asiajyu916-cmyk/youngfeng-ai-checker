@@ -31,7 +31,7 @@ const REG_CATEGORIES: RegCategory[] = [
       {
         id: 'tc-01',
         name: '都市計畫法臺中市施行自治條例',
-        url: 'https://www.laws.taichung.gov.tw/LawSearchContent.aspx?id=0K0030050',
+        url: 'https://law.taichung.gov.tw/LawContent.aspx?id=GL002020',
         desc: '台中市都市計畫法之施行細則與地方補充規定',
         tag: '台中市',
         keywords: ['都市計畫', '都計', '自治條例', '土地使用'],
@@ -39,7 +39,7 @@ const REG_CATEGORIES: RegCategory[] = [
       {
         id: 'tc-02',
         name: '臺中市水湳機場原址整體開發區都市設計審議規範',
-        url: 'https://www.ud.taichung.gov.tw/706357/706366/706374/706382/',
+        url: 'https://law.taichung.gov.tw/LawContent.aspx?id=GL003371',
         desc: '水湳智慧城區都市設計審議標準及規範文件',
         tag: '台中市',
         keywords: ['水湳', '機場', '都審', '都市設計', '智慧城'],
@@ -47,7 +47,7 @@ const REG_CATEGORIES: RegCategory[] = [
       {
         id: 'tc-03',
         name: '臺中市鼓勵宜居建築設施設置及回饋辦法',
-        url: 'https://www.laws.taichung.gov.tw/',
+        url: 'https://law.taichung.gov.tw/LawContent.aspx?id=GL003620',
         desc: '台中市宜居建築容積獎勵與設施設置規定',
         tag: '台中市',
         keywords: ['宜居', '宜居建築', '容積獎勵', '陽台', '露台'],
@@ -62,16 +62,16 @@ const REG_CATEGORIES: RegCategory[] = [
       {
         id: 'do-01',
         name: '都市危險及老舊建築物加速重建條例',
-        url: 'https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0070185',
+        url: 'https://glrs.moi.gov.tw/LawContent.aspx?id=GL000980',
         desc: '危老重建申請條件、容積獎勵、稅務減免之法規依據',
         tag: '全國',
         keywords: ['危老', '重建', '容積獎勵', '老舊建築', '都市更新'],
       },
       {
         id: 'do-02',
-        name: '危老重建推動平台',
-        url: 'https://www.urban-regeneration.tw/',
-        desc: '內政部危老重建申請流程、計畫書範本及審查資訊',
+        name: '加速都市危險及老舊建築物重建',
+        url: 'https://www.ey.gov.tw/page/5a8a0cb5b41da11e/5410e269-3e03-43f7-87b3-8f573d2cbb83',
+        desc: '行政院危老重建推動平台，含申請流程、計畫書範本及審查資訊',
         tag: '全國',
         keywords: ['危老', '重建', '申請', '流程', '計畫書'],
       },
@@ -85,7 +85,7 @@ const REG_CATEGORIES: RegCategory[] = [
       {
         id: 'ud-01',
         name: '台中市都審裝飾板花台 2.0',
-        url: 'https://www.ud.taichung.gov.tw/706357/706366/706374/706382/',
+        url: 'https://www.arcnet.org.tw/system/artical_files/files/000/000/331/original/111.06.08%E9%83%BD%E5%AF%A9_%E8%A3%9D%E9%A3%BE%E6%9D%BF%E8%8A%B1%E5%8F%B02.0.pdf',
         desc: '台中市都審裝飾板及花台設計規範（第二版）',
         tag: '台中市',
         keywords: ['都審', '裝飾板', '花台', '外牆', '陽台'],
@@ -99,8 +99,8 @@ const REG_CATEGORIES: RegCategory[] = [
     resources: [
       {
         id: 'ac-01',
-        name: '臺中市建築物無障礙審查作業參考手冊',
-        url: 'https://www.udl.taichung.gov.tw/706357/706366/706374/706381/',
+        name: '臺中市建築物無障礙相關審查作業參考手冊',
+        url: 'https://www.tccarch.org.tw/Upload/20250324200458_19782.pdf',
         desc: '台中市建築物無障礙設施審查標準與圖說參考',
         tag: '台中市',
         keywords: ['無障礙', '殘障', '輪椅', '坡道', '電梯', '審查'],
@@ -115,7 +115,7 @@ const REG_CATEGORIES: RegCategory[] = [
       {
         id: 'cd-01',
         name: '公寓大廈管理條例',
-        url: 'https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0070010',
+        url: 'https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0070118',
         desc: '公寓大廈共有部分、管理委員會、區分所有權之規定',
         tag: '全國',
         keywords: ['公寓大廈', '管理委員會', '區分所有', '共用', '社區'],
@@ -131,7 +131,7 @@ const REG_CATEGORIES: RegCategory[] = [
         id: 'cm-01',
         name: '台中市建管作業參考手冊',
         url: 'https://mcgbm.taichung.gov.tw/',
-        desc: '台中市建造執照、使用執照申請作業流程與圖說要求',
+        desc: '台中市建造執照、使用執照申請作業流程與圖說要求（PDF 請洽建管系統下載）',
         tag: '台中市',
         keywords: ['建管', '建造執照', '使用執照', '申請', '竣工', '查驗'],
       },
@@ -160,8 +160,8 @@ const REG_CATEGORIES: RegCategory[] = [
       },
       {
         id: 'pl-03',
-        name: '建築 AI 法規查詢平台（NotebookLM）',
-        url: 'https://notebooklm.google.com/',
+        name: '建築 AI 法規查詢平台',
+        url: 'https://notebooklm.google.com/notebook/bf6c6ee3-768e-4b03-9067-f92e54ee69a0',
         desc: 'Google NotebookLM AI 輔助法規問答平台',
         tag: '民間平台',
         keywords: ['AI', 'NotebookLM', 'Google', 'AI法規', '問答'],
