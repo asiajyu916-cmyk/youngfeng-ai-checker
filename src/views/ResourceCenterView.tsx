@@ -28,7 +28,7 @@ const CATEGORIES: Category[] = [
   {
     id: 'land',
     emoji: '🗺️',
-    title: '基地與土地查詢',
+    title: '地籍與土地查詢',
     resources: [
       {
         id: 'land-01',
@@ -75,7 +75,7 @@ const CATEGORIES: Category[] = [
   {
     id: 'geology',
     emoji: '⛰️',
-    title: '地質與災害查詢',
+    title: '環境與災害查詢',
     resources: [
       {
         id: 'geo-01',
@@ -167,7 +167,7 @@ const CATEGORIES: Category[] = [
   {
     id: 'drawing',
     emoji: '✏️',
-    title: '繪圖資源專區',
+    title: '繪圖與BIM資源',
     resources: [
       {
         id: 'drw-01',
@@ -458,8 +458,8 @@ export default function ResourceCenterView({ onNavigate }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-white font-bold text-base leading-tight">H2 法規自主檢討項目表</div>
-                <div className="text-blue-200 text-xs mt-1">消防避難・防火構造・採光日照・居住性能・停車・無障礙・高度量體・台中特殊法規</div>
-                <div className="text-blue-300 text-xs mt-1">8 大分類 46 項｜TOP20 警示・進度追蹤・收藏・列印</div>
+                <div className="text-blue-200 text-xs mt-1">H2 階段自主法規檢核工具，涵蓋建築面積、安全梯、防火、無障礙、宜居建築等核心項目</div>
+                <div className="text-blue-300 text-xs mt-1">共 20 項主題｜⭐ 4 項台中特殊重要項目・可搜尋・可收藏・可列印</div>
               </div>
               <div className="shrink-0 flex items-center gap-2">
                 <span className="text-xs bg-white/20 text-white px-2.5 py-1 rounded-full font-semibold">
